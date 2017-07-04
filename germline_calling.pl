@@ -25,8 +25,9 @@ $yellow     Usage: perl $0 <run_folder> <step_number> $normal
 
 <step_number> run this pipeline step by step. (running the whole pipeline if step number is 0)
 
-$green       [1]  Run gatk
+$red      	 [1]  Run gatk
 $red         [2]  Run varscan
+$red 		 [3]  Run Pindel
 $normal
 OUT
 
