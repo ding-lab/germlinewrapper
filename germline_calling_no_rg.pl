@@ -1,5 +1,8 @@
 ## pipeline for germline_calling.pl ##
-#  germline_calling.pl #
+#  germline_calling_no_rg.pl #
+#  the input bam without readgroup information #	
+### Song Cao ###
+### last updated 7/6/2017 ###
 
 #!/usr/bin/perl
 use strict;
@@ -28,6 +31,7 @@ $yellow     Usage: perl $0 <run_folder> <step_number> $normal
 $red      	 [1]  Run gatk
 $red         [2]  Run varscan
 $red 		 [3]  Run Pindel
+
 $normal
 OUT
 
@@ -150,11 +154,10 @@ sub bsub_gatk{
     print GATK "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
     print GATK "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
     print GATK "#BSUB -J $current_job_file\n";
-    print GATK "scr_t0=\`date \+\%s\`\n";
     print GATK "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
     print GATK "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
   	print GATK "NBAM_rg=".$sample_full_path."/".$sample_name.".N.rg.bam\n";
-  	#print GATK "NBAM_rg=".$sample_full_path."/".$sample_name.".N.rg.bam\n";
+	print GATK "NBAM_rg_bai=".$sample_full_path."/".$sample_name.".N.rg.bam.bai\n";
 	print GATK "myRUNDIR=".$sample_full_path."/gatk\n";
     print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.vcf\n";
 	print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.vcf\n";
@@ -180,14 +183,16 @@ sub bsub_gatk{
     print GATK "then\n";
     print GATK "rm \${BAMLIST}\n";
     print GATK "fi\n";
-    print GATK "echo \"$IN_bam_N_rg\" > \${BAMLIST}\n";
-	#print GATK "java  \${JAVA_OPTS} -jar "."$picardexe AddOrReplaceReadGroups I=\${NBAM} O=\${NBAM_rg} RGID=1 RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=20\n";
-	#print GATK "samtools index \${NBAM_rg}\n";
+   # print GATK "echo \"$IN_bam_N_rg\" > \${BAMLIST}\n";
+	print GATK "java  \${JAVA_OPTS} -jar "."$picardexe AddOrReplaceReadGroups I=\${NBAM} O=\${NBAM_rg} RGID=1 RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=20\n";
+	print GATK "samtools index \${NBAM_rg}\n";
 	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
 	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";
 	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
 	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
-    close GATK;
+    print GATK "rm \${NBAM_rg}\n";
+	print GATK "rm \${NBAM_rg_bai}\n";
+	close GATK;
     $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     system ( $bsub_com );
 
@@ -237,8 +242,6 @@ sub bsub_varscan{
     print VARSCAN "#BSUB -J $current_job_file\n";
     print VARSCAN "#BSUB -w \"$hold_job_file\"","\n";
     print VARSCAN "scr_t0=\`date \+\%s\`\n";
-    #print VARSCAN "chralt=\${chr\/:\/_}\n";
-    #print VARSCAN "dir=\$chralt\n";
     print VARSCAN "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
     print VARSCAN "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
     print VARSCAN "myRUNDIR=".$sample_full_path."/varscan\n";
@@ -246,11 +249,7 @@ sub bsub_varscan{
 	print VARSCAN "logsnp=".$sample_full_path."/varscan/".$sample_name."raw.snp.log\n";
     print VARSCAN "outindel=".$sample_full_path."/varscan/".$sample_name."raw.indel.vcf\n";
     print VARSCAN "logindel=".$sample_full_path."/varscan/".$sample_name."raw.indel.log\n";
-   # print VARSCAN "STATUSDIR=".$sample_full_path."/status\n";
-    #print VARSCAN "RESULTSDIR=".$sample_full_path."/varscan_results\n";
     print VARSCAN "RUNDIR=".$sample_full_path."\n";
-    #print VARSCAN "numgps=10\n";
-    #print VARSCAN "SEQS=\"1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 X Y\"\n";
     print VARSCAN "CONFDIR="."/gscmnt/gc2521/dinglab/cptac_prospective_samples/exome/config\n";
     print VARSCAN "GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip\n";
     print VARSCAN "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
@@ -310,11 +309,11 @@ sub bsub_pindel{
     print PINDEL "then\n";
     print PINDEL "mkdir \${myRUNDIR}\n";
     print PINDEL "fi\n";
-    #print PINDEL "echo \"$IN_bam_T\t500\t$sample_name.T\" > \${CONFIG}\n";
     print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" >> \${CONFIG}\n";
     print PINDEL "$pindel -T 4 -f $h37_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
     close PINDEL;
     $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     system ( $bsub_com );
+
     }
  

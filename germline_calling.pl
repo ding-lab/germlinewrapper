@@ -1,6 +1,8 @@
 ## pipeline for germline_calling.pl ##
 #  germline_calling.pl #
-
+## input bam with readgroup information ##
+### Song Cao ###
+### last updated 7/6/2017 ###
 #!/usr/bin/perl
 use strict;
 use warnings;
