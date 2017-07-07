@@ -1,4 +1,3 @@
-## pipeline for germline_calling.pl ##
 #  germline_calling_no_rg.pl #
 #  the input bam without readgroup information #	
 ### Song Cao ###
