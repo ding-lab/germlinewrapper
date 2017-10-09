@@ -92,7 +92,7 @@ close DH;
 #&check_input_dir($run_dir);
 # start data processsing
 
-if ($step_number < 5) {
+if ($step_number < 7) {
     #begin to process each sample
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
@@ -106,7 +106,7 @@ if ($step_number < 5) {
                    &bsub_gatk();
                    &bsub_varscan();
                    &bsub_pindel();
-                   #&bsub_vep();
+				  # &parser_pindel();
                 }
                  elsif ($step_number == 1) {
                     &bsub_gatk();
@@ -325,6 +325,5 @@ sub bsub_pindel{
     close PINDEL;
     $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     system ( $bsub_com );
-
     }
  

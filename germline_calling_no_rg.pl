@@ -30,7 +30,8 @@ $yellow     Usage: perl $0 <run_folder> <step_number> $normal
 $red      	 [1]  Run gatk
 $red         [2]  Run varscan
 $red 		 [3]  Run Pindel
-
+$yellow 	 [4] parse pindel
+$purple 	 [5] Merge calls
 $normal
 OUT
 
@@ -70,6 +71,7 @@ my $bsub_com = "";
 my $sample_full_path = "";
 my $sample_name = "";
 
+my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
 my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
 my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
@@ -89,7 +91,7 @@ close DH;
 #&check_input_dir($run_dir);
 # start data processsing
 
-if ($step_number < 5) {
+if ($step_number < 6) {
     #begin to process each sample
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
@@ -103,6 +105,8 @@ if ($step_number < 5) {
                    &bsub_gatk();
                    &bsub_varscan();
                    &bsub_pindel();
+				   &bsub_parse_pindel();
+				   &bsub_merge_vcf();
                    #&bsub_vep();
                 }
                  elsif ($step_number == 1) {
@@ -111,6 +115,10 @@ if ($step_number < 5) {
                     &bsub_varscan(1);
                 }elsif ($step_number == 3) {
                     &bsub_pindel(1);
+                }elsif ($step_number == 4) {
+                    &bsub_parse_pindel(1);
+                }elsif ($step_number == 5) {
+                    &bsub_merge_vcf(1);
                 }
 				}
 				}
@@ -313,6 +321,130 @@ sub bsub_pindel{
     close PINDEL;
     $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     system ( $bsub_com );
+    }
+
+sub bsub_parse_pindel {
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j4_parse_pindel_g_".$sample_name.".sh";
+
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    open(PP, ">$job_files_dir/$current_job_file") or die $!;
+    print PP "#!/bin/bash\n";
+    print PP "#BSUB -n 1\n";
+    print PP "#BSUB -R \"rusage[mem=30000]\"","\n";
+    print PP "#BSUB -M 30000000\n";
+    print PP "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    print PP "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    print PP "#BSUB -J $current_job_file\n";
+    #print PP "#BSUB -q long\n";
+    print PP "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print VARSCANP "#BSUB -q long\n";
+    print PP "#BSUB -q research-hpc\n";
+    print PP "#BSUB -w \"$hold_job_file\"","\n";
+    print PP "RUNDIR=".$sample_full_path."\n";
+    print PP "cat > \${RUNDIR}/pindel/pindel_filter.input <<EOF\n";
+    print PP "pindel.filter.pindel2vcf = $PINDEL_DIR/pindel2vcf\n";
+    print PP "pindel.filter.variants_file = \${RUNDIR}/pindel/pindel.out.raw\n";
+    print PP "pindel.filter.REF = $h37_REF\n";
+    print PP "pindel.filter.date = 000000\n";
+    print PP "pindel.filter.heterozyg_min_var_allele_freq = 0.2\n";
+    print PP "pindel.filter.homozyg_min_var_allele_freq = 0.8\n";
+    print PP "pindel.filter.mode = germline\n";
+    print PP "pindel.filter.apply_filter = true\n";
+    print PP "pindel.filter.germline.min_coverages = 10\n";
+    print PP "pindel.filter.germline.min_var_allele_freq = 0.20\n";
+    print PP "pindel.filter.germline.require_balanced_reads = \"true\"\n";
+    print PP "pindel.filter.germline.remove_complex_indels = \"true\"\n";
+    print PP "pindel.filter.germline.max_num_homopolymer_repeat_units = 6\n";
+    print PP "EOF\n";
+    print PP "myRUNDIR=".$sample_full_path."/pindel\n";
+    print PP "cd \${RUNDIR}/pindel\n";
+    print PP "outlist=pindel.out.filelist\n";
+    print PP "find \. -name \'*_D\' -o -name \'*_SI\' -o -name \'*_INV\' -o -name \'*_TD\'  > \./\${outlist}\n";
+    print PP 'list=$(xargs -a  ./$outlist)'."\n";
+    print PP "pin_var_file=pindel.out.raw\n";
+    print PP 'cat $list | grep ChrID > ./$pin_var_file'."\n";
+    print PP "     ".$run_script_path."pindel_filter.v0.5.pl ./pindel_filter.input\n";
+    close PP;
+    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";		
+    system ($bsub_com);
 
     }
+
+
+sub bsub_merge_vcf{
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j5_merge_vcf_g.".$sample_name.".sh";
+    my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
+    my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
+
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+
+    open(MERGE, ">$job_files_dir/$current_job_file") or die $!;
+    print MERGE "#!/bin/bash\n";
+    print MERGE "#BSUB -n 1\n";
+    print MERGE "#BSUB -R \"rusage[mem=30000]\"","\n";
+    print MERGE "#BSUB -M 30000000\n";
+    print MERGE "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    print MERGE "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    print MERGE "#BSUB -J $current_job_file\n";
+    print MERGE "#BSUB -q long\n";
+   # print MERGE "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print VARSCANP "#BSUB -q long\n";
+    #print MERGE "#BSUB -q research-hpc\n";
+    print MERGE "#BSUB -w \"$hold_job_file\"","\n";
+  	print MERGE "RUNDIR=".$sample_full_path."\n";
+    #print VEP "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
+    print MERGE "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
+    print MERGE "export JAVA_HOME=/gscmnt/gc2525/dinglab/rmashl/Software/bin/jre/1.8.0_121-x64\n";
+    print MERGE "export JAVA_OPTS=\"-Xmx10g\"\n";
+    print MERGE "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
+    print MERGE "GATK_snv_VCF="."\${RUNDIR}/gatk/$sample_name.snv.gvip.filtered.vcf\n";
+    print MERGE "GATK_indel_VCF="."\${RUNDIR}/gatk/$sample_name.indel.gvip.filtered.vcf\n";
+    print MERGE "VARSCAN_snv_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.snp.filtered.vcf\n";
+	print MERGE "VARSCAN_indel_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.indel.filtered.vcf\n";	
+    print MERGE "PINDEL_VCF="."\${RUNDIR}/pindel/pindel.out.raw.CvgVafStrand_pass.Homopolymer_pass.vcf\n";
+    print MERGE "MERGER_OUT="."\${RUNDIR}/merged.vcf\n";
+    print MERGE "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
+    print MERGE "merged.vep.vcf = ./merged.filtered.vcf\n";
+    print MERGE "merged.vep.output = ./merged.VEP.vcf\n";
+    print MERGE "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
+    print MERGE "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache\n";
+    print MERGE "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
+    print MERGE "merged.vep.assembly = GRCh37\n";
+    print MERGE "EOF\n";
+   # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h37_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
+    print MERGE "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
+	print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h37_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";	
+#-priority gsnp,vsnp,gindel,vindel,pindel\n";
+    #print MERGE "     ".$run_script_path."vaf_filter.pl \${RUNDIR}\n";
+    #print MERGE "cd \${RUNDIR}\n";
+    #print MERGE ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
+    #print MERGE "     ".$run_script_path."vep_annotator.pl ./vep.merged.input >&./vep.merged.log\n";
+    close MERGE;
+    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #$bsub_com = "sh $job_files_dir/$current_job_file\n";
+    system ($bsub_com);
+    
+	}
  
