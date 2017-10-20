@@ -1,13 +1,14 @@
-#  germline_calling_no_rg.pl #
+#  germline_calling_v1.0.pl #
 #  the input bam without readgroup information #	
 ### Song Cao ###
 ### last updated 7/6/2017 ###
 ### last updated 10/09/2017 ###
-
+### last updated 10/19/2017 ###
 #!/usr/bin/perl
 use strict;
 use warnings;
 #use POSIX;
+use Getopt::Long;
 my $version = 1.0;
 #color code
 my $red = "\e[31m";
@@ -22,7 +23,16 @@ my $normal = "\e[0m";
 (my $usage = <<OUT) =~ s/\t+//g;
 This script will process germline callings. 
 Pipeline version: $version
-$yellow     Usage: perl $0 <run_folder> <step_number> $normal
+$yellow     Usage: perl $0  --srg --step --sre --rdir --ref $normal
+
+<rdir> = full path of the folder holding files for this sequence run (user must provide)
+<srg> = bam having read group or not: 1, yes and 0, no (default 1)
+<sre> = re-run: 1, yes and 0, no  (default 0)
+<step> run this pipeline step by step. (user must provide)
+<ref> the human reference: 
+with chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa
+without chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite.fa
+mmy: /gscmnt/gc2737/ding/Reference/hs37d5_plusRibo_plusOncoViruses_plusERCC.20170530.fa 
 
 <run_folder> = full path of the folder holding files for this sequence run
 
@@ -38,12 +48,53 @@ $cyan 		 [7]  Generate final maf
 $normal
 OUT
 
-die $usage unless @ARGV == 2;
-my ( $run_dir, $step_number ) = @ARGV;
+#die $usage unless @ARGV == 2;
+#my ( $run_dir, $step_number ) = @ARGV;
+#if ($run_dir =~/(.+)\/$/) {
+#    $run_dir = $1;
+#}
+#die $usage unless ($step_number >=0)&&(($step_number <= 10));
+#GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip
+# obtain script path
+#my $run_script_path = `dirname $0`;
+#__DEFAULT NUMBER OF BINS IE (MUST BE INTEGER)
+my $step_number = -1;
+my $status_rg = 1;
+my $status_rerun=0;
+#__HELP (BOOLEAN, DEFAULTS TO NO-HELP)
+my $help = 0;
+
+#__FILE NAME (STRING, NO DEFAULT)
+my $run_dir="";
+
+my $h37_REF="";
+
+#__PARSE COMMAND LINE
+my $status = &GetOptions (
+      "step=i" => \$step_number,
+      "srg=i" => \$status_rg,
+      "sre=i" => \$status_rerun,
+      "rdir=s" => \$run_dir,
+      "ref=s"  => \$h37_REF,
+      "help" => \$help,
+    );
+
+#print $status,"\n";
+
+if ($help || $run_dir eq "" || $step_number<0 || $step_number>8) {
+      print $usage;
+      exit;
+   }
+
+print "run dir=",$run_dir,"\n";
+print "step num=",$step_number,"\n";
+print "status rerun=",$status_rerun,"\n";
+print "status readgroup=",$status_rg,"\n";
+
 if ($run_dir =~/(.+)\/$/) {
     $run_dir = $1;
 }
-die $usage unless ($step_number >=0)&&(($step_number <= 10));
+
 my $email = "scao\@wustl\.edu";
 # everything else below should be automated
 my $HOME = $ENV{HOME};
@@ -62,7 +113,7 @@ my $lsf_file_dir = $HOME1."/LSF_DIR_GERMLINE";
 #GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip
 # obtain script path
 my $script_dir="/gscuser/scao/scripts/git/germlinewrapper";
-#my $run_script_path = `dirname $0`;
+
 my $run_script_path=$script_dir;
 chomp $run_script_path;
 $run_script_path = "/usr/bin/perl ".$run_script_path."/";
@@ -73,12 +124,12 @@ my $hold_job_file = "";
 my $bsub_com = "";
 my $sample_full_path = "";
 my $sample_name = "";
-
+my $h37_REF_bai=$h37_REF.".fai";
 my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
-my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
+#my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
 my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
-my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
+#my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
 my $pindel="/gscuser/qgao/tools/pindel/pindel";
 my $PINDEL_DIR="/gscuser/qgao/tools/pindel";
 #my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
@@ -227,14 +278,20 @@ sub bsub_gatk{
     print GATK "rm \${BAMLIST}\n";
     print GATK "fi\n";
    # print GATK "echo \"$IN_bam_N_rg\" > \${BAMLIST}\n";
+    print GATK "if [ $status_rg -eq 0 ]\n";
+	print GATK "then\n";
 	print GATK "java  \${JAVA_OPTS} -jar "."$picardexe AddOrReplaceReadGroups I=\${NBAM} O=\${NBAM_rg} RGID=1 RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=20\n";
 	print GATK "samtools index \${NBAM_rg}\n";
+   # print GATK "else\n";
 	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+    print GATK "rm \${NBAM_rg}\n";
+    print GATK "rm \${NBAM_rg_bai}\n";
+	print GATK "else\n";
+	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+    print GATK "fi\n";
 	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";
 	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
-	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
-    print GATK "rm \${NBAM_rg}\n";
-	print GATK "rm \${NBAM_rg_bai}\n";
+	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";	
 	close GATK;
     $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     system ( $bsub_com );
