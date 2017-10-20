@@ -218,17 +218,17 @@ sub bsub_gatk{
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 	my $IN_bam_N_rg=$sample_full_path."/".$sample_name.".N.rg.bam";
-    if (! -e $IN_bam_T) {#make sure there is a input fasta file 
-        print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
-        print "Warning: Died because there is no input bam file for bwa:\n";
-        print "File $IN_bam_T does not exist!\n";
-        die "Please check command line argument!", $normal, "\n\n";
+    #if (! -e $IN_bam_T) {#make sure there is a input fasta file 
+    #    print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+    #    print "Warning: Died because there is no input bam file for bwa:\n";
+    #    print "File $IN_bam_T does not exist!\n";
+    #    die "Please check command line argument!", $normal, "\n\n";
 
-    }
-    if (! -s $IN_bam_T) {#make sure input fasta file is not empty
-        print $red, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
-        die "Warning: Died because $IN_bam_T is empty!", $normal, "\n\n";
-    }
+    #}
+   # if (! -s $IN_bam_T) {#make sure input fasta file is not empty
+    #    print $red, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+    #    die "Warning: Died because $IN_bam_T is empty!", $normal, "\n\n";
+    #}
     if (! -e $IN_bam_N) {#make sure there is a input fasta file 
         print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
         print "Warning: Died because there is no input bam file for bwa:\n";
@@ -310,17 +310,17 @@ sub bsub_varscan{
     $current_job_file = "j2_varscan_g_".$sample_name.".sh";
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
-    if (! -e $IN_bam_T) {#make sure there is a input fasta file 
-        print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
-        print "Warning: Died because there is no input bam file for bwa:\n";
-        print "File $IN_bam_T does not exist!\n";
-        die "Please check command line argument!", $normal, "\n\n";
+    #if (! -e $IN_bam_T) {#make sure there is a input fasta file 
+    #    print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+    #    print "Warning: Died because there is no input bam file for bwa:\n";
+    #    print "File $IN_bam_T does not exist!\n";
+    #    die "Please check command line argument!", $normal, "\n\n";
 
-    }
-    if (! -s $IN_bam_T) {#make sure input fasta file is not empty
-        print $red, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
-        die "Warning: Died because $IN_bam_T is empty!", $normal, "\n\n";
-    }
+   # }
+   # if (! -s $IN_bam_T) {#make sure input fasta file is not empty
+    #    print $red, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+     #   die "Warning: Died because $IN_bam_T is empty!", $normal, "\n\n";
+    #}
     if (! -e $IN_bam_N) {#make sure there is a input fasta file 
         print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
         print "Warning: Died because there is no input bam file for bwa:\n";
