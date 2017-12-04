@@ -23,10 +23,11 @@ my $normal = "\e[0m";
 (my $usage = <<OUT) =~ s/\t+//g;
 This script will process germline callings. 
 Pipeline version: $version
-$yellow     Usage: perl $0  --srg --step --sre --rdir --ref $normal
+$yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log $normal
 
 <rdir> = full path of the folder holding files for this sequence run (user must provide)
 <srg> = bam having read group or not: 1, yes and 0, no (default 1)
+<log> = full path of the folder for saving log file; usually upper folder of rdir 
 <sre> = re-run: 1, yes and 0, no  (default 0)
 <step> run this pipeline step by step. (user must provide)
 <ref> the human reference: 
@@ -66,7 +67,7 @@ my $help = 0;
 
 #__FILE NAME (STRING, NO DEFAULT)
 my $run_dir="";
-
+my $log_dir="";
 my $h37_REF="";
 
 #__PARSE COMMAND LINE
@@ -76,12 +77,13 @@ my $status = &GetOptions (
       "sre=i" => \$status_rerun,
       "rdir=s" => \$run_dir,
       "ref=s"  => \$h37_REF,
+      "log=s"  => \$log_dir,
       "help" => \$help,
     );
 
 #print $status,"\n";
 
-if ($help || $run_dir eq "" || $step_number<0 || $step_number>8) {
+if ($help || $run_dir eq "" || $log_dir eq ""  || $step_number<0 || $step_number>8) {
       print $usage;
       exit;
    }
@@ -99,7 +101,7 @@ my $email = "scao\@wustl\.edu";
 # everything else below should be automated
 my $HOME = $ENV{HOME};
 my $working_name= (split(/\//,$run_dir))[-2];
-my $HOME1="/gscmnt/gc2524/dinglab";
+my $HOME1=$log_dir;
 #store job files here
 if (! -d $HOME1."/tmpgermline") {
     `mkdir $HOME1"/tmpgermline"`;
@@ -113,7 +115,6 @@ my $lsf_file_dir = $HOME1."/LSF_DIR_GERMLINE";
 #GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip
 # obtain script path
 my $script_dir="/gscuser/scao/scripts/git/germlinewrapper";
-
 my $run_script_path=$script_dir;
 chomp $run_script_path;
 $run_script_path = "/usr/bin/perl ".$run_script_path."/";
@@ -136,6 +137,7 @@ my $PINDEL_DIR="/gscuser/qgao/tools/pindel";
 my $gatkexe="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
 my $picardexe="/gscuser/scao/tools/picard.jar";
 my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
+my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
 
 opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
@@ -199,7 +201,7 @@ if($step_number==7 || $step_number==0)
     print REPRUN "#BSUB -R \"rusage[mem=40000]\"","\n";
     print REPRUN "#BSUB -M 40000000\n";
     print REPRUN "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
-    #print STREKA "#BSUB -q long\n";
+    #print REPRUN "#BSUB -q long\n";
     print REPRUN "#BSUB -q research-hpc\n";
     #print REPRUN "#BSUB -q ding-lab\n";
     print REPRUN "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
@@ -260,7 +262,7 @@ sub bsub_gatk{
     print GATK "RUNDIR=".$sample_full_path."\n";
     print GATK "CONFDIR="."/gscmnt/gc2521/dinglab/cptac_prospective_samples/exome/config\n";
     print GATK "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
-    print GATK "export JAVA_HOME=/gscmnt/gc2525/dinglab/rmashl/Software/bin/jre/1.8.0_60-x64\n";
+    print GATK "export JAVA_HOME=$java_dir\n";
     print GATK "export JAVA_OPTS=\"-Xms256m -Xmx512m\"\n";
     print GATK "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
     print GATK "if [ ! -d \${myRUNDIR} ]\n";
@@ -354,7 +356,7 @@ sub bsub_varscan{
     print VARSCAN "GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip\n";
     print VARSCAN "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
     print VARSCAN "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
-    print VARSCAN "export JAVA_HOME=/gscmnt/gc2525/dinglab/rmashl/Software/bin/jre/1.8.0_60-x64\n";
+    print VARSCAN "export JAVA_HOME=$java_dir\n";
     print VARSCAN "export JAVA_OPTS=\"-Xms256m -Xmx512m\"\n";
     print VARSCAN "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
     print VARSCAN "if [ ! -d \${myRUNDIR} ]\n";
@@ -501,15 +503,15 @@ sub bsub_merge_vcf{
     print MERGE "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
     print MERGE "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
     print MERGE "#BSUB -J $current_job_file\n";
-    print MERGE "#BSUB -q long\n";
-   # print MERGE "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print MERGE "#BSUB -q long\n";
+    print MERGE "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
     #print VARSCANP "#BSUB -q long\n";
-    #print MERGE "#BSUB -q research-hpc\n";
+    print MERGE "#BSUB -q research-hpc\n";
     print MERGE "#BSUB -w \"$hold_job_file\"","\n";
   	print MERGE "RUNDIR=".$sample_full_path."\n";
     #print VEP "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
     print MERGE "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
-    print MERGE "export JAVA_HOME=/gscmnt/gc2525/dinglab/rmashl/Software/bin/jre/1.8.0_121-x64\n";
+    print MERGE "export JAVA_HOME=$java_dir\n";
     print MERGE "export JAVA_OPTS=\"-Xmx10g\"\n";
     print MERGE "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
     print MERGE "GATK_snv_VCF="."\${RUNDIR}/gatk/$sample_name.snv.gvip.filtered.vcf\n";
@@ -565,10 +567,13 @@ sub bsub_vcf_2_maf{
     print MAF "#BSUB -n 1\n";
     print MAF "#BSUB -R \"rusage[mem=30000]\"","\n";
     print MAF "#BSUB -M 30000000\n";
+    print MAF "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print VARSCANP "#BSUB -q long\n";
+    print MAF "#BSUB -q research-hpc\n";
     print MAF "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
     print MAF "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
     print MAF "#BSUB -J $current_job_file\n";
-    print MAF "#BSUB -q long\n";
+    #print MAF "#BSUB -q long\n";
     print MAF "#BSUB -w \"$hold_job_file\"","\n";
     print MAF "RUNDIR=".$sample_full_path."\n";
     print MAF "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
@@ -576,7 +581,9 @@ sub bsub_vcf_2_maf{
     print MAF "merged.vep.output = ./merged.VEP.vcf\n";
     print MAF "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
     print MAF "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache\n";
-    print MAF "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
+
+#    print MAF "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
+   print MAF "merged.vep.reffasta = $h37_REF\n";
     print MAF "merged.vep.assembly = GRCh37\n";
     print MAF "EOF\n";
     print MAF "F_VCF_1=".$sample_full_path."/merged.vcf\n";
