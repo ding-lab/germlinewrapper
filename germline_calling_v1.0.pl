@@ -34,9 +34,9 @@ $yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log $normal
 with chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa
 without chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite.fa
 mmy: /gscmnt/gc2737/ding/Reference/hs37d5_plusRibo_plusOncoViruses_plusERCC.20170530.fa 
+hg19: /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta 
 
 <run_folder> = full path of the folder holding files for this sequence run
-
 <step_number> run this pipeline step by step. (running the whole pipeline if step number is 0)
 
 $red      	 [1]  Run gatk
