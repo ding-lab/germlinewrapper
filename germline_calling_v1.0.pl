@@ -192,18 +192,21 @@ if($step_number==7 || $step_number==0)
     $current_job_file = "Run_report_gl_".$working_name.".sh";
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
-    `rm $lsf_out`;
+    if(-e $lsf_out) 
+	{
+	`rm $lsf_out`;
     `rm $lsf_err`;
     `rm $current_job_file`;
+	}
     open(REPRUN, ">$job_files_dir/$current_job_file") or die $!;
     print REPRUN "#!/bin/bash\n";
     print REPRUN "#BSUB -n 1\n";
     print REPRUN "#BSUB -R \"rusage[mem=40000]\"","\n";
     print REPRUN "#BSUB -M 40000000\n";
-    print REPRUN "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print REPRUN "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
     #print REPRUN "#BSUB -q long\n";
-    print REPRUN "#BSUB -q research-hpc\n";
-    #print REPRUN "#BSUB -q ding-lab\n";
+    #print REPRUN "#BSUB -q research-hpc\n";
+    print REPRUN "#BSUB -q ding-lab\n";
     print REPRUN "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
     print REPRUN "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
     print REPRUN "#BSUB -J $current_job_file\n";
@@ -217,6 +220,15 @@ if($step_number==7 || $step_number==0)
 sub bsub_gatk{
     #my $cdhitReport = $sample_full_path."/".$sample_name.".fa.cdhitReport";
     $current_job_file = "j1_gatk_g_".$sample_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 	my $IN_bam_N_rg=$sample_full_path."/".$sample_name.".N.rg.bam";
@@ -310,6 +322,14 @@ sub bsub_varscan{
     }
 
     $current_job_file = "j2_varscan_g_".$sample_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
     #if (! -e $IN_bam_T) {#make sure there is a input fasta file 
@@ -392,6 +412,14 @@ sub bsub_pindel{
     }
 
     $current_job_file = "j3_pindel_g_".$sample_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
     open(PINDEL, ">$job_files_dir/$current_job_file") or die $!;
@@ -427,6 +455,15 @@ sub bsub_parse_pindel {
         $hold_job_file = $current_job_file;
     }
 
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
     $current_job_file = "j4_parse_pindel_g_".$sample_name.".sh";
 
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
@@ -441,10 +478,11 @@ sub bsub_parse_pindel {
     print PP "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
     print PP "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
     print PP "#BSUB -J $current_job_file\n";
-    #print PP "#BSUB -q long\n";
-    print PP "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    print PP "#BSUB -q ding-lab\n";
+    #print PP "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+#print PP "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/lucid-default:latest)\'\n";
     #print VARSCANP "#BSUB -q long\n";
-    print PP "#BSUB -q research-hpc\n";
+    #print PP "#BSUB -q research-hpc\n";
     print PP "#BSUB -w \"$hold_job_file\"","\n";
     print PP "RUNDIR=".$sample_full_path."\n";
     print PP "cat > \${RUNDIR}/pindel/pindel_filter.input <<EOF\n";
@@ -490,10 +528,16 @@ sub bsub_merge_vcf{
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 
+
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    
+   if(-e $lsf_out)
+    {
     `rm $lsf_out`;
     `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
 
     open(MERGE, ">$job_files_dir/$current_job_file") or die $!;
     print MERGE "#!/bin/bash\n";
@@ -504,9 +548,10 @@ sub bsub_merge_vcf{
     print MERGE "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
     print MERGE "#BSUB -J $current_job_file\n";
     #print MERGE "#BSUB -q long\n";
-    print MERGE "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    print MERGE "#BSUB -q ding-lab\n"; 
+    #print MERGE "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
     #print VARSCANP "#BSUB -q long\n";
-    print MERGE "#BSUB -q research-hpc\n";
+    #print MERGE "#BSUB -q research-hpc\n";
     print MERGE "#BSUB -w \"$hold_job_file\"","\n";
   	print MERGE "RUNDIR=".$sample_full_path."\n";
     #print VEP "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
@@ -555,25 +600,30 @@ sub bsub_vcf_2_maf{
 
 
     $current_job_file = "j6_vcf_2_maf.".$sample_name.".sh";
-    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
-    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
-    `rm $lsf_out`;
-    `rm $lsf_err`;
     #my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
+
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
 
     open(MAF, ">$job_files_dir/$current_job_file") or die $!;
     print MAF "#!/bin/bash\n";
     print MAF "#BSUB -n 1\n";
     print MAF "#BSUB -R \"rusage[mem=30000]\"","\n";
     print MAF "#BSUB -M 30000000\n";
-    print MAF "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print MAF "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
     #print VARSCANP "#BSUB -q long\n";
-    print MAF "#BSUB -q research-hpc\n";
+    #print MAF "#BSUB -q research-hpc\n";
     print MAF "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
     print MAF "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
     print MAF "#BSUB -J $current_job_file\n";
-    #print MAF "#BSUB -q long\n";
+    print MAF "#BSUB -q ding-lab\n";
     print MAF "#BSUB -w \"$hold_job_file\"","\n";
     print MAF "RUNDIR=".$sample_full_path."\n";
     print MAF "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
@@ -586,11 +636,13 @@ sub bsub_vcf_2_maf{
    print MAF "merged.vep.reffasta = $h37_REF\n";
     print MAF "merged.vep.assembly = GRCh37\n";
     print MAF "EOF\n";
-    print MAF "F_VCF_1=".$sample_full_path."/merged.vcf\n";
+	print MAF "F_VCF_0=".$sample_full_path."/merged.vcf\n";
+    print MAF "F_VCF_1=".$sample_full_path."/merged.1.vcf\n";
     print MAF "F_VCF_2=".$sample_full_path."/".$sample_name.".vcf\n";
     print MAF "F_VEP_1=".$sample_full_path."/merged.VEP.vcf\n";
     print MAF "F_VEP_2=".$sample_full_path."/".$sample_name.".vep.vcf\n";
     print MAF "F_maf=".$sample_full_path."/".$sample_name.".maf\n";
+    print MAF "     ".$run_script_path."remove_svtype.pl \${F_VCF_0} \${F_VCF_1}\n";
     print MAF "cd \${RUNDIR}\n";
     print MAF ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
     print MAF "     ".$run_script_path."vep_annotator.pl ./vep.merged.input >&./vep.merged.log\n";
@@ -599,7 +651,8 @@ sub bsub_vcf_2_maf{
     print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
     print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
     print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $h37_REF --filter-vcf $f_exac\n";
-    close MAF;
+    print MAF "     ".$run_script_path."splice_site_check.pl \${F_maf}\n"; 
+	close MAF;
     $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     system ($bsub_com);
 

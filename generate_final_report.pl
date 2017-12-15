@@ -20,7 +20,7 @@ foreach my $d (`ls $run_dir`)
 {
   	my $dtr=$d; 
 	chomp($dtr); 
-	my $f_maf=$run_dir."/".$dtr."/".$dtr.".maf"; 
+	my $f_maf=$run_dir."/".$dtr."/".$dtr.".checked.maf"; 
 	if(-e $f_maf) 
 	{
 		my $count=0;
@@ -34,7 +34,7 @@ foreach my $d (`ls $run_dir`)
 			else { 
 				my @temp=split("\t",$ltr); 
 				my $annot=$temp[8];
-				if($annot=~/Frame_Shift_Del/ || $annot=~/Frame_Shift_Ins/ || $annot=~/Missense_Mutation/ || $annot=~/Nonsense_Mutation/ ||  $annot=~/Nonstop_Mutation/ || $annot=~/Silent/ || $annot=~/Splice_Site/) {
+				if($annot=~/Frame_Shift_Del/ || $annot=~/Frame_Shift_Ins/ || $annot=~/Missense_Mutation/ || $annot=~/Nonsense_Mutation/ ||  $annot=~/Nonstop_Mutation/ || $annot=~/Silent/ || $annot=~/Splice_Site/ || $annot=~/In_Frame_Ins/ || $annot=~/In_Frame_Del/) {
 					print OUT1 $ltr,"\n"; 
 					$count++;
 					} 
