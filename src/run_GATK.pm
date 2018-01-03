@@ -54,7 +54,7 @@ sub bsub_gatk{
     print GATK "RUNDIR=".$sample_full_path."\n";
     print GATK "CONFDIR="."/gscmnt/gc2521/dinglab/cptac_prospective_samples/exome/config\n";
     print GATK "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
-    print GATK "export JAVA_HOME=/gscmnt/gc2525/dinglab/rmashl/Software/bin/jre/1.8.0_60-x64\n";
+    print GATK "export JAVA_HOME=$java_dir\n";
     print GATK "export JAVA_OPTS=\"-Xms256m -Xmx512m\"\n";
     print GATK "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
     print GATK "if [ ! -d \${myRUNDIR} ]\n";

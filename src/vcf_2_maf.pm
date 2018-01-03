@@ -40,7 +40,7 @@ sub bsub_vcf_2_maf{
     print MAF "merged.vep.output = ./merged.VEP.vcf\n";
     print MAF "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
     print MAF "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache\n";
-    print MAF "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
+    print MAF "merged.vep.reffasta = $h37_REF\n";
     print MAF "merged.vep.assembly = GRCh37\n";
     print MAF "EOF\n";
     print MAF "F_VCF_0=".$sample_full_path."/merged.vcf\n";

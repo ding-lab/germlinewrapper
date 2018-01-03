@@ -23,10 +23,11 @@ my $normal = "\e[0m";
 (my $usage = <<OUT) =~ s/\t+//g;
 This script will process germline callings. 
 Pipeline version: $version
-$yellow     Usage: perl $0  --srg --step --sre --rdir --ref $normal
+$yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log $normal
 
 <rdir> = full path of the folder holding files for this sequence run (user must provide)
 <srg> = bam having read group or not: 1, yes and 0, no (default 1)
+<log> = full path of the folder for saving log file; usually upper folder of rdir
 <sre> = re-run: 1, yes and 0, no  (default 0)
 <step> run this pipeline step by step. (user must provide)
 <ref> the human reference: 
@@ -66,7 +67,7 @@ my $help = 0;
 
 #__FILE NAME (STRING, NO DEFAULT)
 my $run_dir="";
-
+my $log_dir="";
 my $h37_REF="";
 
 #__PARSE COMMAND LINE
@@ -76,12 +77,13 @@ my $status = &GetOptions (
       "sre=i" => \$status_rerun,
       "rdir=s" => \$run_dir,
       "ref=s"  => \$h37_REF,
+      "log=s"  => \$log_dir,
       "help" => \$help,
     );
 
 #print $status,"\n";
 
-if ($help || $run_dir eq "" || $step_number<0 || $step_number>8) {
+if ($help || $run_dir eq "" || $log_dir eq ""  || $step_number<0 || $step_number>8) {
       print $usage;
       exit;
    }
@@ -99,7 +101,7 @@ my $email = "scao\@wustl\.edu";
 # everything else below should be automated
 my $HOME = $ENV{HOME};
 my $working_name= (split(/\//,$run_dir))[-2];
-my $HOME1="/gscmnt/gc2524/dinglab";
+my $HOME1=$log_dir;
 #store job files here
 if (! -d $HOME1."/tmpgermline") {
     `mkdir $HOME1"/tmpgermline"`;
@@ -136,6 +138,7 @@ my $PINDEL_DIR="/gscuser/qgao/tools/pindel";
 my $gatkexe="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
 my $picardexe="/gscuser/scao/tools/picard.jar";
 my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
+my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
 
 opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
