@@ -8,6 +8,14 @@ sub bsub_parse_pindel {
         $hold_job_file = $current_job_file;
     }
 
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out) {
+        `rm $lsf_out`;
+        `rm $lsf_err`;
+        `rm $current_job_file`;
+    }
+
     $current_job_file = "j4_parse_pindel_g_".$sample_name.".sh";
 
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";

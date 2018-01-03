@@ -9,6 +9,13 @@ sub bsub_varscan{
     }
 
     $current_job_file = "j2_varscan_g_".$sample_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out) {
+        `rm $lsf_out`;
+        `rm $lsf_err`;
+        `rm $current_job_file`;
+    }
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
     #if (! -e $IN_bam_T) {#make sure there is a input fasta file 

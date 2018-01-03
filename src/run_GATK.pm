@@ -2,6 +2,13 @@
 sub bsub_gatk{
     #my $cdhitReport = $sample_full_path."/".$sample_name.".fa.cdhitReport";
     $current_job_file = "j1_gatk_g_".$sample_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out) {
+        `rm $lsf_out`;
+        `rm $lsf_err`;
+        `rm $current_job_file`;
+    }
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 	my $IN_bam_N_rg=$sample_full_path."/".$sample_name.".N.rg.bam";

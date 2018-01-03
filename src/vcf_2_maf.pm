@@ -10,10 +10,17 @@ sub bsub_vcf_2_maf{
 
 
     $current_job_file = "j6_vcf_2_maf.".$sample_name.".sh";
+
+    my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
+
+
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
-    `rm $lsf_out`;
-    `rm $lsf_err`;
+    if(-e $lsf_out) {
+        `rm $lsf_out`;
+        `rm $lsf_err`;
+        `rm $current_job_file`;
+    }
     #my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 
@@ -36,11 +43,13 @@ sub bsub_vcf_2_maf{
     print MAF "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
     print MAF "merged.vep.assembly = GRCh37\n";
     print MAF "EOF\n";
-    print MAF "F_VCF_1=".$sample_full_path."/merged.vcf\n";
+    print MAF "F_VCF_0=".$sample_full_path."/merged.vcf\n";
+    print MAF "F_VCF_1=".$sample_full_path."/merged.1.vcf\n";
     print MAF "F_VCF_2=".$sample_full_path."/".$sample_name.".vcf\n";
     print MAF "F_VEP_1=".$sample_full_path."/merged.VEP.vcf\n";
     print MAF "F_VEP_2=".$sample_full_path."/".$sample_name.".vep.vcf\n";
     print MAF "F_maf=".$sample_full_path."/".$sample_name.".maf\n";
+    print MAF "     ".$run_script_path."remove_svtype.pl \${F_VCF_0} \${F_VCF_1}\n";
     print MAF "cd \${RUNDIR}\n";
     print MAF ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
     print MAF "     ".$run_script_path."vep_annotator.pl ./vep.merged.input >&./vep.merged.log\n";
@@ -49,6 +58,7 @@ sub bsub_vcf_2_maf{
     print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
     print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
     print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $h37_REF --filter-vcf $f_exac\n";
+    print MAF "     ".$run_script_path."splice_site_check.pl \${F_maf}\n";
     close MAF;
     $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     system ($bsub_com);
