@@ -4,6 +4,8 @@
 ### last updated 7/6/2017 ###
 ### last updated 10/09/2017 ###
 ### last updated 10/19/2017 ###
+### updated 1/9/2018 ###
+
 #!/usr/bin/perl
 use strict;
 use warnings;
@@ -23,7 +25,9 @@ my $normal = "\e[0m";
 (my $usage = <<OUT) =~ s/\t+//g;
 This script will process germline callings. 
 Pipeline version: $version
-$yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log $normal
+$yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log --q
+
+$normal
 
 <rdir> = full path of the folder holding files for this sequence run (user must provide)
 <srg> = bam having read group or not: 1, yes and 0, no (default 1)
@@ -31,6 +35,8 @@ $yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log $normal
 <sre> = re-run: 1, yes and 0, no  (default 0)
 <step> run this pipeline step by step. (user must provide)
 <ref> the human reference: 
+<q> which queue for submitting job; research-hpc, ding-lab, long (default)
+
 with chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa
 without chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite.fa
 mmy: /gscmnt/gc2737/ding/Reference/hs37d5_plusRibo_plusOncoViruses_plusERCC.20170530.fa 
@@ -69,6 +75,7 @@ my $help = 0;
 my $run_dir="";
 my $log_dir="";
 my $h37_REF="";
+my $q_name="";
 
 #__PARSE COMMAND LINE
 my $status = &GetOptions (
@@ -78,6 +85,7 @@ my $status = &GetOptions (
       "rdir=s" => \$run_dir,
       "ref=s"  => \$h37_REF,
       "log=s"  => \$log_dir,
+	  "q=s" => \$q_name,
       "help" => \$help,
     );
 
@@ -92,6 +100,11 @@ print "run dir=",$run_dir,"\n";
 print "step num=",$step_number,"\n";
 print "status rerun=",$status_rerun,"\n";
 print "status readgroup=",$status_rg,"\n";
+print "queue name=",$q_name,"\n";
+if($q_name eq "")
+{
+    $q_name="long";
+}
 
 if ($run_dir =~/(.+)\/$/) {
     $run_dir = $1;
@@ -114,10 +127,15 @@ if (! -d $HOME1."/LSF_DIR_GERMLINE") {
 my $lsf_file_dir = $HOME1."/LSF_DIR_GERMLINE";
 #GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip
 # obtain script path
-my $script_dir="/gscuser/scao/scripts/git/germlinewrapper";
-my $run_script_path=$script_dir;
+#my $script_dir="/gscuser/scao/scripts/git/germlinewrapper";
+#my $run_script_path=$script_dir;
+#chomp $run_script_path;
+my $run_script_path =`echo \$PWD`;
 chomp $run_script_path;
-$run_script_path = "/usr/bin/perl ".$run_script_path."/";
+#my $run_script_path = `dirname $0`;
+my $script_dir=$run_script_path;
+
+$run_script_path = "/gsc/bin/perl ".$run_script_path."/";
 print $run_script_path,"\n";
 my $hold_RM_job = "norm";
 my $current_job_file = "";#cannot be empty
@@ -192,28 +210,39 @@ if($step_number==7 || $step_number==0)
     $current_job_file = "Run_report_gl_".$working_name.".sh";
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+
     if(-e $lsf_out) 
 	{
 	`rm $lsf_out`;
     `rm $lsf_err`;
     `rm $current_job_file`;
 	}
+
     open(REPRUN, ">$job_files_dir/$current_job_file") or die $!;
     print REPRUN "#!/bin/bash\n";
-    print REPRUN "#BSUB -n 1\n";
-    print REPRUN "#BSUB -R \"rusage[mem=40000]\"","\n";
-    print REPRUN "#BSUB -M 40000000\n";
+    #print REPRUN "#BSUB -n 1\n";
+    #print REPRUN "#BSUB -R \"rusage[mem=40000]\"","\n";
+    #print REPRUN "#BSUB -M 40000000\n";
     #print REPRUN "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
     #print REPRUN "#BSUB -q long\n";
     #print REPRUN "#BSUB -q research-hpc\n";
-    print REPRUN "#BSUB -q ding-lab\n";
-    print REPRUN "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print REPRUN "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print REPRUN "#BSUB -J $current_job_file\n";
-    print REPRUN "#BSUB -w \"$hold_job_file\"","\n";
+    #print REPRUN "#BSUB -q ding-lab\n";
+    #print REPRUN "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print REPRUN "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    #print REPRUN "#BSUB -J $current_job_file\n";
+    #print REPRUN "#BSUB -w \"$hold_job_file\"","\n";
     print REPRUN "      ".$run_script_path."generate_final_report.pl ".$run_dir."\n";
     close REPRUN;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #system ($bsub_com);
+
+ 	my $sh_file=$job_files_dir."/".$current_job_file;
+
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";   }
+    print $bsub_com;
     system ($bsub_com);
 
 }
@@ -256,12 +285,13 @@ sub bsub_gatk{
     }
     open(GATK, ">$job_files_dir/$current_job_file") or die $!;
     print GATK "#!/bin/bash\n";
-    print GATK "#BSUB -n 1\n";
-    print GATK "#BSUB -R \"rusage[mem=30000]\"","\n";
-    print GATK "#BSUB -M 30000000\n";
-    print GATK "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print GATK "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print GATK "#BSUB -J $current_job_file\n";
+    #print GATK "#BSUB -n 1\n";
+    #print GATK "#BSUB -R \"rusage[mem=30000]\"","\n";
+    #print GATK "#BSUB -M 30000000\n";
+    #print GATK "#BSUB -q ding-lab\n";
+	#print GATK "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print GATK "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    #print GATK "#BSUB -J $current_job_file\n";
     print GATK "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
     print GATK "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
   	print GATK "NBAM_rg=".$sample_full_path."/".$sample_name.".N.rg.bam\n";
@@ -307,8 +337,16 @@ sub bsub_gatk{
 	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
 	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";	
 	close GATK;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
-    system ( $bsub_com );
+    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #system ( $bsub_com );
+
+ my $sh_file=$job_files_dir."/".$current_job_file;
+	
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
+    }
 
 	}
 
@@ -356,13 +394,15 @@ sub bsub_varscan{
     }
     open(VARSCAN, ">$job_files_dir/$current_job_file") or die $!;
     print VARSCAN "#!/bin/bash\n";
-    print VARSCAN "#BSUB -n 1\n";
-    print VARSCAN "#BSUB -R \"rusage[mem=30000]\"","\n";
-    print VARSCAN "#BSUB -M 30000000\n";
-    print VARSCAN "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print VARSCAN "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print VARSCAN "#BSUB -J $current_job_file\n";
-    print VARSCAN "#BSUB -w \"$hold_job_file\"","\n";
+    #print VARSCAN "#BSUB -n 1\n";
+    #print VARSCAN "#BSUB -R \"rusage[mem=30000]\"","\n";
+    #print VARSCAN "#BSUB -M 30000000\n";
+    #print VARSCAN "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print VARSCAN "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+   # print VARSCAN "#BSUB -J $current_job_file\n";
+    #print VARSCAN "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print VARSCAN "#BSUB -q research-hpc\n";
+    #print VARSCAN "#BSUB -w \"$hold_job_file\"","\n";
     print VARSCAN "scr_t0=\`date \+\%s\`\n";
     print VARSCAN "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
     print VARSCAN "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
@@ -394,14 +434,26 @@ sub bsub_varscan{
     print VARSCAN "rm \${BAMLIST}\n";
     print VARSCAN "fi\n";
     print VARSCAN "echo \"$IN_bam_N\" > \${BAMLIST}\n";
-	print VARSCAN "ncols=\$(echo \"3*( \$(wc -l < \$BAMLIST) +1)\"|bc)\n";
-    print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
+	#print VARSCAN "ncols=\$(echo \"3*( \$(wc -l < \$BAMLIST) +1)\"|bc)\n";
+ 	 print VARSCAN "ncols=6\n";
+	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
  	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
     close VARSCAN;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
-    system ( $bsub_com );
+    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #system ( $bsub_com );
 
-	}
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    #$bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -o $lsf_out -e $lsf_err sh $sh_file\n";     
+	#print $bsub_com;
+    #system ($bsub_com);
+
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
+    }
+
+}
 
 sub bsub_pindel{
     my ($step_by_step) = @_;
@@ -424,13 +476,13 @@ sub bsub_pindel{
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
     open(PINDEL, ">$job_files_dir/$current_job_file") or die $!;
     print PINDEL "#!/bin/bash\n";
-    print PINDEL "#BSUB -n 4\n";
-    print PINDEL "#BSUB -R \"span[hosts=1] rusage[mem=30000]\"","\n";
-    print PINDEL "#BSUB -M 30000000\n";
-    print PINDEL "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print PINDEL "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print PINDEL "#BSUB -J $current_job_file\n";
-    print PINDEL "#BSUB -w \"$hold_job_file\"","\n";
+    #print PINDEL "#BSUB -n 4\n";
+    #print PINDEL "#BSUB -R \"span[hosts=1] rusage[mem=30000]\"","\n";
+    #print PINDEL "#BSUB -M 30000000\n";
+    #print PINDEL "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print PINDEL "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    #print PINDEL "#BSUB -J $current_job_file\n";
+    #print PINDEL "#BSUB -w \"$hold_job_file\"","\n";
     print PINDEL "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
     print PINDEL "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
     print PINDEL "myRUNDIR=".$sample_full_path."/pindel\n";
@@ -442,8 +494,18 @@ sub bsub_pindel{
     print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" >> \${CONFIG}\n";
     print PINDEL "$pindel -T 4 -f $h37_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
     close PINDEL;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
-    system ( $bsub_com );
+   # $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #system ( $bsub_com );
+ 	my $sh_file=$job_files_dir."/".$current_job_file;
+
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 4 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 4 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";   }
+    print $bsub_com;
+    system ($bsub_com);
+
+    
     }
 
 sub bsub_parse_pindel {
@@ -466,19 +528,19 @@ sub bsub_parse_pindel {
 
     $current_job_file = "j4_parse_pindel_g_".$sample_name.".sh";
 
-    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
-    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
-    `rm $lsf_out`;
-    `rm $lsf_err`;
+    #my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    #my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    #`rm $lsf_out`;
+    #`rm $lsf_err`;
     open(PP, ">$job_files_dir/$current_job_file") or die $!;
     print PP "#!/bin/bash\n";
-    print PP "#BSUB -n 1\n";
-    print PP "#BSUB -R \"rusage[mem=30000]\"","\n";
-    print PP "#BSUB -M 30000000\n";
-    print PP "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print PP "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print PP "#BSUB -J $current_job_file\n";
-    print PP "#BSUB -q ding-lab\n";
+    #print PP "#BSUB -n 1\n";
+    #print PP "#BSUB -R \"rusage[mem=30000]\"","\n";
+    #print PP "#BSUB -M 30000000\n";
+    #print PP "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print PP "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    #print PP "#BSUB -J $current_job_file\n";
+    #print PP "#BSUB -q ding-lab\n";
     #print PP "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
 #print PP "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/lucid-default:latest)\'\n";
     #print VARSCANP "#BSUB -q long\n";
@@ -509,7 +571,15 @@ sub bsub_parse_pindel {
     print PP 'cat $list | grep ChrID > ./$pin_var_file'."\n";
     print PP "     ".$run_script_path."pindel_filter.v0.5.pl ./pindel_filter.input\n";
     close PP;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";		
+    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";		
+    #system ($bsub_com);
+
+ 	my $sh_file=$job_files_dir."/".$current_job_file;
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";   }
+    print $bsub_com;
     system ($bsub_com);
 
     }
@@ -541,14 +611,14 @@ sub bsub_merge_vcf{
 
     open(MERGE, ">$job_files_dir/$current_job_file") or die $!;
     print MERGE "#!/bin/bash\n";
-    print MERGE "#BSUB -n 1\n";
-    print MERGE "#BSUB -R \"rusage[mem=30000]\"","\n";
-    print MERGE "#BSUB -M 30000000\n";
-    print MERGE "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print MERGE "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print MERGE "#BSUB -J $current_job_file\n";
+    #print MERGE "#BSUB -n 1\n";
+    ##print MERGE "#BSUB -R \"rusage[mem=30000]\"","\n";
+    #print MERGE "#BSUB -M 30000000\n";
+    #print MERGE "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print MERGE "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    #print MERGE "#BSUB -J $current_job_file\n";
     #print MERGE "#BSUB -q long\n";
-    print MERGE "#BSUB -q ding-lab\n"; 
+    #print MERGE "#BSUB -q ding-lab\n"; 
     #print MERGE "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
     #print VARSCANP "#BSUB -q long\n";
     #print MERGE "#BSUB -q research-hpc\n";
@@ -582,10 +652,22 @@ sub bsub_merge_vcf{
     #print MERGE ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
     #print MERGE "     ".$run_script_path."vep_annotator.pl ./vep.merged.input >&./vep.merged.log\n";
     close MERGE;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #$bsub_com = "sh $job_files_dir/$current_job_file\n";
+    #system ($bsub_com);
+ 
+    my $sh_file=$job_files_dir."/".$current_job_file;
+
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
+    }
+
+    print $bsub_com;
+
     system ($bsub_com);
-    
+
 	}
 
 
@@ -614,17 +696,17 @@ sub bsub_vcf_2_maf{
 
     open(MAF, ">$job_files_dir/$current_job_file") or die $!;
     print MAF "#!/bin/bash\n";
-    print MAF "#BSUB -n 1\n";
-    print MAF "#BSUB -R \"rusage[mem=30000]\"","\n";
-    print MAF "#BSUB -M 30000000\n";
+    #print MAF "#BSUB -n 1\n";
+    #print MAF "#BSUB -R \"rusage[mem=60000]\"","\n";
+    #print MAF "#BSUB -M 60000000\n";
     #print MAF "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
     #print VARSCANP "#BSUB -q long\n";
     #print MAF "#BSUB -q research-hpc\n";
-    print MAF "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print MAF "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print MAF "#BSUB -J $current_job_file\n";
-    print MAF "#BSUB -q ding-lab\n";
-    print MAF "#BSUB -w \"$hold_job_file\"","\n";
+    #print MAF "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print MAF "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    #print MAF "#BSUB -J $current_job_file\n";
+    #print MAF "#BSUB -q ding-lab\n";
+    #print MAF "#BSUB -w \"$hold_job_file\"","\n";
     print MAF "RUNDIR=".$sample_full_path."\n";
     print MAF "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
     print MAF "merged.vep.vcf = ./merged.vcf\n";
@@ -644,16 +726,25 @@ sub bsub_vcf_2_maf{
     print MAF "F_maf=".$sample_full_path."/".$sample_name.".maf\n";
     print MAF "     ".$run_script_path."remove_svtype.pl \${F_VCF_0} \${F_VCF_1}\n";
     print MAF "cd \${RUNDIR}\n";
-    print MAF ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
-    print MAF "     ".$run_script_path."vep_annotator.pl ./vep.merged.input >&./vep.merged.log\n";
+	print MAF ". $script_dir/set_envvars\n";
+#    print MAF ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
+    print MAF "     ".$run_script_path."vep_annotator_v1.1.pl ./vep.merged.input >&./vep.merged.log\n";
     print MAF "rm \${F_VCF_2}\n";
     print MAF "rm \${F_VEP_2}\n";
     print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
     print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
     print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $h37_REF --filter-vcf $f_exac\n";
-    print MAF "     ".$run_script_path."splice_site_check.pl \${F_maf}\n"; 
+    #print MAF "     ".$run_script_path."splice_site_check.pl $sample_full_path\n"; 
 	close MAF;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+#    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+ #   system ($bsub_com);
+
+ my $sh_file=$job_files_dir."/".$current_job_file;
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";   }
+    print $bsub_com;
     system ($bsub_com);
 
     }
