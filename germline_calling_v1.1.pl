@@ -148,6 +148,7 @@ my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
 #my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
 my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
+my $f_ref_annot="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
 #my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
 my $pindel="/gscuser/qgao/tools/pindel/pindel";
 my $PINDEL_DIR="/gscuser/qgao/tools/pindel";
@@ -491,7 +492,8 @@ sub bsub_pindel{
     print PINDEL "then\n";
     print PINDEL "mkdir \${myRUNDIR}\n";
     print PINDEL "fi\n";
-    print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" >> \${CONFIG}\n";
+    #print PINDEL "rm \${CONFIG}\n";
+	print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" > \${CONFIG}\n";
     print PINDEL "$pindel -T 4 -f $h37_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
     close PINDEL;
    # $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
@@ -711,11 +713,11 @@ sub bsub_vcf_2_maf{
     print MAF "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
     print MAF "merged.vep.vcf = ./merged.vcf\n";
     print MAF "merged.vep.output = ./merged.VEP.vcf\n";
-    print MAF "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
-    print MAF "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache\n";
+    print MAF "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
+    print MAF "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/cache\n";
 
 #    print MAF "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
-   print MAF "merged.vep.reffasta = $h37_REF\n";
+   print MAF "merged.vep.reffasta = $f_ref_annot\n";
     print MAF "merged.vep.assembly = GRCh37\n";
     print MAF "EOF\n";
 	print MAF "F_VCF_0=".$sample_full_path."/merged.vcf\n";
@@ -733,13 +735,13 @@ sub bsub_vcf_2_maf{
     print MAF "rm \${F_VEP_2}\n";
     print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
     print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
-    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $h37_REF --filter-vcf $f_exac\n";
+    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n";
     #print MAF "     ".$run_script_path."splice_site_check.pl $sample_full_path\n"; 
 	close MAF;
 #    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
  #   system ($bsub_com);
 
- my $sh_file=$job_files_dir."/".$current_job_file;
+ 	my $sh_file=$job_files_dir."/".$current_job_file;
     if($q_name eq "research-hpc")
     {
     $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
