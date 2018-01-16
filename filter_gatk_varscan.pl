@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+### snv: union call from varscan and gatk
+### indel: callings from pindel or both gatak and varscan
+
 use strict;
 use warnings;
 die unless @ARGV == 2;
@@ -93,6 +96,7 @@ while(<INV>)
 
   }
 
+## remove inconsistence between pindel, gatk and varscan
  
 foreach my $id (sort keys %gatkvcf) 
 	{
@@ -173,6 +177,12 @@ while(<INV>)
 
 	#<STDIN>;
 
+	## remove M allele ##
+	if($refvar=~/M/) { next; }
+	if($refvar=~/R/) { next; }
+
+	### coverage and vaf cut-off ##
+	
 	if($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev>=$min_coverage && (($n_var_rev+$n_var_fw)/($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev)>$vcf_cutoff)) 
 	{
 		if(!defined $removevars{$id}) 
@@ -204,6 +214,10 @@ while(<ING>)
 	my $desc=$temp[8];
     my $infor=$temp[9];
     my @temp2=split(":",$infor); 
+	## remove M allel ##
+  	if($refvar=~/M/) { next; }
+	if($refvar=~/R/) { next; }
+
     if($desc=~/AD/) 
 	{
 
@@ -243,6 +257,8 @@ while(<INSV>)
     my $n_ref_rev=(split(":",$infor))[-3];
     my $n_var_fw=(split(":",$infor))[-2];
     my $n_var_rev=(split(":",$infor))[-1];    
+    if($refvar=~/M/) { next; }
+    if($refvar=~/R/) { next; }
 	#print $line,"\n";
     #print $n_ref_fw,"\n"; 
     #print $n_ref_rev,"\n";
@@ -275,7 +291,12 @@ while(<INSG>)
     my $refvar=$temp[3]."_".$temp[4];
     my $infor=$temp[9];
     my @temp2=split(":",$infor);
-      my $desc=$temp[8];
+    my $desc=$temp[8];
+
+	## remove M allele ##
+  	if($refvar=~/M/) { next; }
+	if($refvar=~/R/) { next; }
+
 	if($desc=~/AD/) 
 	{
     my @temp3=split(",",$temp2[1]);

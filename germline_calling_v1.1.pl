@@ -345,9 +345,11 @@ sub bsub_gatk{
 	
     if($q_name eq "research-hpc")
     {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
     }
+
+system ( $bsub_com );
 
 	}
 
@@ -715,9 +717,7 @@ sub bsub_vcf_2_maf{
     print MAF "merged.vep.output = ./merged.VEP.vcf\n";
     print MAF "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
     print MAF "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/cache\n";
-
-#    print MAF "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
-   print MAF "merged.vep.reffasta = $f_ref_annot\n";
+   	print MAF "merged.vep.reffasta = $f_ref_annot\n";
     print MAF "merged.vep.assembly = GRCh37\n";
     print MAF "EOF\n";
 	print MAF "F_VCF_0=".$sample_full_path."/merged.vcf\n";
@@ -726,26 +726,45 @@ sub bsub_vcf_2_maf{
     print MAF "F_VEP_1=".$sample_full_path."/merged.VEP.vcf\n";
     print MAF "F_VEP_2=".$sample_full_path."/".$sample_name.".vep.vcf\n";
     print MAF "F_maf=".$sample_full_path."/".$sample_name.".maf\n";
+	print MAF "vep_log=".$sample_full_path."/vep.merged.log\n";
+    print MAF "if [ $status_rerun -eq 1 ]\n";
+    print MAF "then\n";
+    print MAF "rm \${vep_log}\n";
+    print MAF "fi\n";
+	
+    print MAF "if [ -f \${vep_log} ]\n";
+	print MAF "then\n";
+    print MAF 'tail -1 ${vep_log} | grep ERROR',"\n";
+	print MAF '          CHECK=$?',"\n";
+	print MAF '		if [ ${CHECK} -eq 0 ]',"\n";
+	print MAF "then\n"; 
     print MAF "     ".$run_script_path."remove_svtype.pl \${F_VCF_0} \${F_VCF_1}\n";
     print MAF "cd \${RUNDIR}\n";
 	print MAF ". $script_dir/set_envvars\n";
-#    print MAF ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
     print MAF "     ".$run_script_path."vep_annotator_v1.1.pl ./vep.merged.input >&./vep.merged.log\n";
     print MAF "rm \${F_VCF_2}\n";
     print MAF "rm \${F_VEP_2}\n";
     print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
     print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
     print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n";
-    #print MAF "     ".$run_script_path."splice_site_check.pl $sample_full_path\n"; 
+	print MAF "fi\n";
+	print MAF "else\n";
+    print MAF "     ".$run_script_path."remove_svtype.pl \${F_VCF_0} \${F_VCF_1}\n";
+    print MAF "cd \${RUNDIR}\n";
+    print MAF ". $script_dir/set_envvars\n";
+    print MAF "     ".$run_script_path."vep_annotator_v1.1.pl ./vep.merged.input >&./vep.merged.log\n";
+    print MAF "rm \${F_VCF_2}\n";
+    print MAF "rm \${F_VEP_2}\n";
+    print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
+    print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
+    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n"; 
+	print MAF "fi\n";
 	close MAF;
-#    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
- #   system ($bsub_com);
-
  	my $sh_file=$job_files_dir."/".$current_job_file;
     if($q_name eq "research-hpc")
     {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";   }
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";   }
     print $bsub_com;
     system ($bsub_com);
 
