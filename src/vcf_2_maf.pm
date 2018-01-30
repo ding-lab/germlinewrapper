@@ -90,7 +90,7 @@ ln -s \${F_VCF_1} \${F_VCF_2}
 ln -s \${F_VEP_1} \${F_VEP_2}
 vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $REF --filter-vcf $f_exac
 
-splice_site_check.pl \${F_maf}
+# splice_site_check.pl \${F_maf}  # According to Song 1/11/18 no longer needed
 
 
     close MAF;

@@ -22,3 +22,14 @@ Common options to git log: https://git-scm.com/book/en/v2/Git-Basics-Viewing-the
 
 --
 TODO: track the modifications made to germline_calling_v1.0.pl and incorporate them into src scripts
+
+---
+Jan 2018 update: development work taking place on branch "d2", and 'docker' branch seems like it can go away
+
+Song writes 1/11/18,
+    After extensive test, I found splice_site_check.pl may be not necessary in the
+    pipeline. vep can do the correct annotation, thus there is no need for
+    additional splice-site checking. Thus, splice_site_check.pl part can be removed
+    in both somatic and germline pipelines. 
+
+This will be incorporated
