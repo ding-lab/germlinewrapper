@@ -1,15 +1,13 @@
-#  germline_calling_v1.0.pl #
+#  GermlineWrapper.pl
 #  the input bam without readgroup information #	
-### Song Cao ###
-### last updated 7/6/2017 ###
-### last updated 10/09/2017 ###
-### last updated 10/19/2017 ###
+### Song Cao and Matthew Wyczalkowski ###
+
 #!/usr/bin/perl
 use strict;
 use warnings;
 #use POSIX;
 use Getopt::Long;
-my $version = 1.0;
+my $version = 2.0;
 #color code
 my $red = "\e[31m";
 my $gray = "\e[37m";
@@ -19,6 +17,16 @@ my $purple = "\e[35m";
 my $cyan = "\e[36m";
 my $normal = "\e[0m";
 #usage information
+
+require('src/run_GATK.pl');
+require('src/run_varscan.pl');
+require('src/run_pindel.pl');
+require('src/parse_pindel.pl');
+require('src/merge_vcf.pl');
+require('src/vcf_2_maf.pl');
+
+# TODO: parameters should be passed in configuration file
+# TODO: test for existence of BAM, reference, etc.
 
 (my $usage = <<OUT) =~ s/\t+//g;
 This script will process germline callings. 
@@ -30,11 +38,7 @@ $yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log $normal
 <log> = full path of the folder for saving log file; usually upper folder of rdir
 <sre> = re-run: 1, yes and 0, no  (default 0)
 <step> run this pipeline step by step. (user must provide)
-<ref> the human reference: 
-with chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa
-without chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite.fa
-mmy: /gscmnt/gc2737/ding/Reference/hs37d5_plusRibo_plusOncoViruses_plusERCC.20170530.fa 
-hg19: /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta
+<ref> reference: 
 
 <run_folder> = full path of the folder holding files for this sequence run
 <step_number> run this pipeline step by step. (running the whole pipeline if step number is 0)
@@ -121,7 +125,6 @@ chomp $run_script_path;
 $run_script_path = "/usr/bin/perl ".$run_script_path."/";
 print $run_script_path,"\n";
 my $hold_RM_job = "norm";
-my $current_job_file = "";#cannot be empty
 my $hold_job_file = "";
 my $bsub_com = "";
 my $sample_full_path = "";
@@ -148,42 +151,33 @@ close DH;
 #&check_input_dir($run_dir);
 # start data processsing
 
+# According to Jay, GenomeVIP labeling is unnecessary and unused.  Better to remove it to save processing space and time
+
 if ($step_number < 7) {
-    #begin to process each sample
+#begin to process each sample
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
         if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
             $sample_full_path = $run_dir."/".$sample_name;
             if (-d $sample_full_path) { # is a full path directory containing a sample
                 print $yellow, "\nSubmitting jobs for the sample ",$sample_name, "...",$normal, "\n";
-                $current_job_file="";
-                if($step_number==0)
-                {
-                   &bsub_gatk();
-                   &bsub_varscan();
-                   &bsub_pindel();
-				   &bsub_parse_pindel();
-				   &bsub_merge_vcf();
-				   &bsub_vcf_2_maf();
-                   #&bsub_vep();
-                }
-                 elsif ($step_number == 1) {
-                    &bsub_gatk();
+                if ($step_number == 1) {
+                    run_GATK($NBAM, $sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $gatk, $picard, $status_rg);
                 } elsif ($step_number == 2) {
-                    &bsub_varscan(1);
-                }elsif ($step_number == 3) {
-                    &bsub_pindel(1);
-                }elsif ($step_number == 4) {
-                    &bsub_parse_pindel(1);
-                }elsif ($step_number == 5) {
-                    &bsub_merge_vcf(1);
-                }elsif ($step_number==6) {
-				    &bsub_vcf_2_maf(1);		
-				}
-				}
-				}
-		}
-	}
+                    run_varscan($IN_bam_N, $sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $varscan_config_snp, $varscan_config_indel);
+                } elsif ($step_number == 3) {
+                    run_pindel($IN_bam_N, $sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $pindel, $f_centromere);
+                } elsif ($step_number == 4) {
+                    parse_pindel($sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $perl, $gvip_dir, $pindel2vcf, $pindel_config);
+                } elsif ($step_number == 5) {
+                    merge_vcf($sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $gatk);
+                } elsif ($step_number==6) {
+                    vcf_2_maf(xxx);
+                }
+            }
+        }
+    }
+}
 
 if($step_number==7 || $step_number==0) {
 

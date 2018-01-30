@@ -1,0 +1,24 @@
+
+`docker` branched from master at 8a54b7a (last common ancestor)
+
+`dc2` merged docker back onto master
+
+This is what HEAD for master looks like:
+    * 0902ffb (HEAD -> master, origin/master, origin/HEAD) Create LICENSE
+    * 0c46e9d remove svtype and add splice_site_check
+    * 8e31ccc add hg19 ref
+    * e3cde42 add log and update java location
+    * 8a54b7a update germline
+
+---
+Question: how to I know exactly what was done for each of these commits, and make sure
+I incorporate them correctly in dc2 branch?
+
+Common options to git log: https://git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History#log_options
+
+`git log -p` shows patches -> detailed changes in each file
+`git log --stat` shows summary changes per file, good overview 
+'git log --oneline --decorate --graph' - aliased to `git ll`
+
+--
+TODO: track the modifications made to germline_calling_v1.0.pl and incorporate them into src scripts

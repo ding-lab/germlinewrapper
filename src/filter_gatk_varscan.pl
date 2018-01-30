@@ -31,6 +31,7 @@ open(ING,"<$gatk_vcf");
 open(INV,"<$vars_vcf"); 
 open(OUTG,">$gatk_vcf_filter");
 open(OUTV,">$vars_vcf_filter"); 
+
 open(INSG,"<$gatk_snv_vcf");
 open(INSV,"<$vars_snv_vcf");
 open(OUTSG,">$gatk_snv_vcf_filter"); 

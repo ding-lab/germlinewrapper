@@ -1,42 +1,45 @@
 
-sub bsub_pindel{
-    my ($step_by_step) = @_;
-    if ($step_by_step) {
-        $hold_job_file = "";
-    }else{
-        $hold_job_file = $current_job_file;
-    }
+sub run_pindel{
+    my $IN_bam_N = shift;
+    my $sample_name = shift;
+    my $sample_full_path = shift;
+    my $job_files_dir = shift;
+    my $bsub = shift;
+    my $REF = shift;
+    my $pindel = shift;  # path to pindel executable
+    my $f_centromere = shift;
 
     $current_job_file = "j3_pindel_g_".$sample_name.".sh";
-    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
-    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
-    if(-e $lsf_out) {
-        `rm $lsf_out`;
-        `rm $lsf_err`;
-        `rm $current_job_file`;
-    }
-    my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
-    my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
-    open(PINDEL, ">$job_files_dir/$current_job_file") or die $!;
-    print PINDEL "#!/bin/bash\n";
-    print PINDEL "#BSUB -n 4\n";
-    print PINDEL "#BSUB -R \"span[hosts=1] rusage[mem=30000]\"","\n";
-    print PINDEL "#BSUB -M 30000000\n";
-    print PINDEL "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print PINDEL "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print PINDEL "#BSUB -J $current_job_file\n";
-    print PINDEL "#BSUB -w \"$hold_job_file\"","\n";
-    print PINDEL "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
-    print PINDEL "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
-    print PINDEL "myRUNDIR=".$sample_full_path."/pindel\n";
-    print PINDEL "CONFIG=\${myRUNDIR}"."/".$sample_name.".config\n";
-    print PINDEL "if [ ! -d \${myRUNDIR} ]\n";
-    print PINDEL "then\n";
-    print PINDEL "mkdir \${myRUNDIR}\n";
-    print PINDEL "fi\n";
-    print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" >> \${CONFIG}\n";
-    print PINDEL "$pindel -T 4 -f $h37_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
-    close PINDEL;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+
+    my $workdir = "$sample_full_path/pindel/pindel_out";
+    system("mkdir -p $workdir");
+
+    my $config_fn = "$workdir/$sample_name.config";
+    print("Writing to $config_fn\n");
+    open(OUT, ">$config_fn") or die $!;
+    print OUT <<"EOF";
+$IN_bam_T\t500\t$sample_name.T  -- confirm this is deleted
+$IN_bam_N\t500\t$sample_name.N
+EOF
+
+    my $pindel_args="-T 4 -m 6 -w 1"
+
+    my $out = "$job_files_dir/$current_job_file";
+    print("Writing to $out\n");
+    open(OUT, ">$out") or die $!;
+    print OUT <<"EOF";
+#!/bin/bash
+
+$pindel -f $REF -i $config_fn -o $workdir $pindel_args -J $f_centromere
+
+EOF
+
+    close OUT;
+
+    my $bsub_com = "$bsub < $job_files_dir/$current_job_file\n";
+    print("Executing:\n $bsub_com \n");
+
     system ( $bsub_com );
-    }
+}
+
+1;

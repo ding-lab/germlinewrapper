@@ -1,6 +1,6 @@
 
 # Confirm input normal BAM file exists and is not empty
-sub bsub_gatk{
+sub run_GATK {
     my $NBAM = shift;
     my $sample_name = shift;
     my $sample_full_path = shift;
@@ -11,9 +11,7 @@ sub bsub_gatk{
     my $picard = shift;
     my $status_rg = shift;
 
-
-
-    $current_job_file = "j1_gatk_g_".$sample_name.".sh";
+    my $current_job_file = "j1_gatk_g_".$sample_name.".sh";
     my $outfn = "$job_files_dir/$current_job_file";
     print("Writing to $outfn\n");
 
@@ -60,7 +58,7 @@ sub bsub_gatk{
             java  \${JAVA_OPTS} -jar $gatk -R $REF  -T HaplotypeCaller -I \${NBAM} -o \${rawvcf} $haplotype_args
 EOF
     } else {
-        $step1 = <<'EOF'; 
+        $step1 = <<"EOF"; 
             java  \${JAVA_OPTS} -jar $picard AddOrReplaceReadGroups I=\${NBAM} O=\${NBAM_rg} $picard_args
             samtools index \${NBAM_rg}
             java  \${JAVA_OPTS} -jar $gatk -R $REF  -T HaplotypeCaller -I \${NBAM_rg} -o \${rawvcf} $haplotype_args
@@ -93,4 +91,5 @@ EOF
     print("Executing:\n $bsub_com \n");
     system ( $bsub_com );
 
-	}
+}
+1;

@@ -1,90 +1,55 @@
+# TODO: allow varscan, samtools to be defined in configuration file
 
-sub bsub_varscan{
+sub run_varscan{
+    my $IN_bam_N = shift;
+    my $sample_name = shift;
+    my $sample_full_path = shift;
+    my $job_files_dir = shift;
+    my $bsub = shift;
+    my $REF = shift;
+    my $varscan_config_snp = shift;
+    my $varscan_config_indel = shift;
 
-    my ($step_by_step) = @_;
-    if ($step_by_step) {
-        $hold_job_file = "";
-    }else{
-        $hold_job_file = $current_job_file;
-    }
+    my $varscan="/usr/local/VarScan.v2.3.8.jar";
+    my $samtools="/usr/local/bin/samtools";
 
-    $current_job_file = "j2_varscan_g_".$sample_name.".sh";
-    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
-    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
-    if(-e $lsf_out) {
-        `rm $lsf_out`;
-        `rm $lsf_err`;
-        `rm $current_job_file`;
-    }
-    my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
-    my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
-    #if (! -e $IN_bam_T) {#make sure there is a input fasta file 
-    #    print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
-    #    print "Warning: Died because there is no input bam file for bwa:\n";
-    #    print "File $IN_bam_T does not exist!\n";
-    #    die "Please check command line argument!", $normal, "\n\n";
 
-   # }
-   # if (! -s $IN_bam_T) {#make sure input fasta file is not empty
-    #    print $red, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
-     #   die "Warning: Died because $IN_bam_T is empty!", $normal, "\n\n";
-    #}
-    if (! -e $IN_bam_N) {#make sure there is a input fasta file 
-        print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
-        print "Warning: Died because there is no input bam file for bwa:\n";
-        print "File $IN_bam_N does not exist!\n";
-        die "Please check command line argument!", $normal, "\n\n";
+    die "File not found: $varscan_config_indel\n" if (! -e $varscan_config_indel);
+    # ignore comments in varscan_config and convert newlines to spaces, so that all arguments are in one line
+    my $varscan_snp_args=`grep -v "^#" $varscan_config_snp | tr '\n' ' '`;
+    my $varscan_indel_args=`grep -v "^#" $varscan_config_indel | tr '\n' ' '`;
 
-    }
-    if (! -s $IN_bam_N) {#make sure input fasta file is not empty
-        print $red, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
-        die "Warning: Died because $IN_bam_N is empty!", $normal, "\n\n";
-    }
-    open(VARSCAN, ">$job_files_dir/$current_job_file") or die $!;
-    print VARSCAN "#!/bin/bash\n";
-    print VARSCAN "#BSUB -n 1\n";
-    print VARSCAN "#BSUB -R \"rusage[mem=30000]\"","\n";
-    print VARSCAN "#BSUB -M 30000000\n";
-    print VARSCAN "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    print VARSCAN "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    print VARSCAN "#BSUB -J $current_job_file\n";
-    print VARSCAN "#BSUB -w \"$hold_job_file\"","\n";
-    print VARSCAN "scr_t0=\`date \+\%s\`\n";
-    print VARSCAN "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
-    print VARSCAN "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
-    print VARSCAN "myRUNDIR=".$sample_full_path."/varscan\n";
-	print VARSCAN "outsnp=".$sample_full_path."/varscan/".$sample_name."raw.snp.vcf\n";
-	print VARSCAN "logsnp=".$sample_full_path."/varscan/".$sample_name."raw.snp.log\n";
-    print VARSCAN "outindel=".$sample_full_path."/varscan/".$sample_name."raw.indel.vcf\n";
-    print VARSCAN "logindel=".$sample_full_path."/varscan/".$sample_name."raw.indel.log\n";
-    print VARSCAN "RUNDIR=".$sample_full_path."\n";
-    print VARSCAN "CONFDIR="."/gscmnt/gc2521/dinglab/cptac_prospective_samples/exome/config\n";
-    print VARSCAN "GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip\n";
-    print VARSCAN "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
-    print VARSCAN "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
-    print VARSCAN "export JAVA_HOME=$java_dir\n";
-    print VARSCAN "export JAVA_OPTS=\"-Xms256m -Xmx512m\"\n";
-    print VARSCAN "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
-    print VARSCAN "if [ ! -d \${myRUNDIR} ]\n";
-    print VARSCAN "then\n";
-    print VARSCAN "mkdir \${myRUNDIR}\n";
-    print VARSCAN "fi\n";
-    print VARSCAN "if \[\[ -z \"\$LD_LIBRARY_PATH\" \]\] \; then\n";
-    print VARSCAN "export LD_LIBRARY_PATH=\${JAVA_HOME}/lib\n";
-    print VARSCAN "else\n";
-    print VARSCAN "export LD_LIBRARY_PATH=\${JAVA_HOME}/lib:\${LD_LIBRARY_PATH}\n";
-    print VARSCAN "fi\n";
-    print VARSCAN "BAMLIST=\${RUNDIR}/varscan/bamfilelist.inp\n";
-    print VARSCAN "if [ ! -e \${BAMLIST} ]\n";
-    print VARSCAN "then\n";
-    print VARSCAN "rm \${BAMLIST}\n";
-    print VARSCAN "fi\n";
-    print VARSCAN "echo \"$IN_bam_N\" > \${BAMLIST}\n";
-	print VARSCAN "ncols=\$(echo \"3*( \$(wc -l < \$BAMLIST) +1)\"|bc)\n";
-    print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
- 	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
-    close VARSCAN;
-    $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    my $workdir="$sample_full_path/varscan";
+    system("mkdir -p $workdir");
+
+    # Create a list of BAM files for varscan to use
+    my $bam_list="$workdir/bamfilelist.inp";
+    open(OUT, ">$bam_list") or die $!;
+    print OUT "$IN_bam_N\n";
+    close OUT;
+
+    my $current_job_file = "j2_varscan_g_".$sample_name.".sh";
+    my $outfn = "$job_files_dir/$current_job_file";
+    print("Writing to $outfn\n");
+    open(OUT, ">$outfn") or die $!;
+
+    my $outsnp="$workdir/$sample_name"."raw.snp.vcf";
+    my $logsnp="$workdir/$sample_name"."raw.snp.log";
+    my $outindel="$workdir/$sample_name"."raw.indel.vcf";
+    my $logindel="$workdir/$sample_name"."raw.indel.log";
+
+    print OUT <<"EOF";
+#!/bin/bash
+export JAVA_OPTS=\"-Xms256m -Xmx512m\"
+
+$samtools mpileup -q 1 -Q 13 -B -f $REF -b $bam_list | java \${JAVA_OPTS} -jar $varscan mpileup2snp - $varscan_config_snp > $outsnp 2> $logsnp
+$samtools mpileup -q 1 -Q 13 -B -f $REF -b $bam_list | java \${JAVA_OPTS} -jar $varscan mpileup2indel - $varscan_config_indel > $outindel 2> $logindel
+EOF
+
+    close OUT;
+    my $bsub_com = "$bsub < $job_files_dir/$current_job_file\n";
+    print("Executing:\n $bsub_com \n");
     system ( $bsub_com );
+}
 
-	}
+1;
