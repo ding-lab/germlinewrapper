@@ -1,11 +1,16 @@
-# germlinewrapper
-detect germline variants from normal samples
+# Germline Wrapper d2
 
-Song Cao
+Detect germline variants from normal samples
 
-GermineWrapper pipeline is a fully automated and modular software package designed for detection of germline variants from normal exome data. It works on LSF job scheduler. Multiple standard variant callings are included in the pipeline such as varscan, gatk and pindel.
+Song Cao and Matt Wyczalkowski
 
-Additional notes
+GermineWrapper pipeline is a fully automated and modular software package
+designed for detection of germline variants from normal exome data. 
+Designed to run in MGI and standard docker envrionments. 
+
+Variant callers used: varscan, gatk and pindel.
+
+## Additional notes
 
 * All paths with respect to host 
 
@@ -13,3 +18,7 @@ TODO:
 set up centromeres, etc in `/image.setup/C_Centromeres/pindel-centromere-exclude.bed`
 set up reference (or just use SomaticWrapper's)
 confirm that picard is needed, and install in SomaticWrapper docker image
+
+* GermlineWrapper will be installed into SomaticWrapper docker image
+* Add picard to SW docker image
+
