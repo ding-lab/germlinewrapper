@@ -2,6 +2,9 @@
 #  the input bam without readgroup information #	
 ### Song Cao and Matthew Wyczalkowski ###
 
+# To do: implement command line arguments:
+# -d: dry run.  print commands without executing them
+
 #!/usr/bin/perl
 use strict;
 use warnings;
@@ -23,166 +26,159 @@ require('src/run_varscan.pl');
 require('src/run_pindel.pl');
 require('src/parse_pindel.pl');
 require('src/merge_vcf.pl');
-require('src/vcf_2_maf.pl');
 
 # TODO: parameters should be passed in configuration file
 # TODO: test for existence of BAM, reference, etc.
 
 (my $usage = <<OUT) =~ s/\t+//g;
-This script will process germline callings. 
-Pipeline version: $version
-$yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log $normal
-
-<rdir> = full path of the folder holding files for this sequence run (user must provide)
-<srg> = bam having read group or not: 1, yes and 0, no (default 1)
-<log> = full path of the folder for saving log file; usually upper folder of rdir
-<sre> = re-run: 1, yes and 0, no  (default 0)
-<step> run this pipeline step by step. (user must provide)
-<ref> reference: 
-
-<run_folder> = full path of the folder holding files for this sequence run
-<step_number> run this pipeline step by step. (running the whole pipeline if step number is 0)
+This script will perform germline calls for WXS and WGS data
+$yellow     Usage: perl $0 step_number config_file [config_file_2] $normal
+step_number run this pipeline step by step. (running the whole pipeline if step number is 0)
+config_file Input configuration file.  See below for format
+config_file_2 Optional secondary configuration file, any parameters here override configuration previous configuration
 
 $red      	 [1]  Run gatk
 $red         [2]  Run varscan
 $red 		 [3]  Run Pindel
 $yellow 	 [4]  Parse pindel
 $purple 	 [5]  Merge calls
-$green 		 [6]  VCF2MAF
-$cyan 		 [7]  Generate final maf
 $normal
+
+Config File details
+
+Format:
+    key = value
+
+** TODO **
+* Incorporate original germline wrapper arguments
+* confirm all optional config file parameters are used
+* confirm that status_rg is necessary and implemented correctly. 
+    This is a pre-processing step and may be better to remove it
+* do we need path to sw_dir?  Or to germline wrapper installation?  May need both
+* find/replace all "somatic" instances
+
+Required configuration file keys
+    normal_bam
+    reference_fasta
+    sample_name
+
+Optional configuration file parameters  - NOTE, these are taken from SomaticWrapper, must be cleaned up
+    assembly - GRCh37 or GRCh38.  Used only for VEP, not currently implemented
+    sw_dir - Somatic Wrapper installation directory.  Default is /usr/local/somaticwrapper  *** TODO change this ***
+    sw_data - Somatic Wrapper analysis results directory.  Default is /data/data
+            Per-sample analysis directory is sw_data/sample_name
+    use_vep_db - whether to use online VEP database lookups (1 for true)
+          db mode a) uses online database (so cache isn't installed) b) does not use tmp files
+          It is meant to be used for testing and lightweight applications.  Use the cache for
+          better performance.  See discussion: https://www.ensembl.org/info/docs/tools/vep/script/vep_cache.html 
+    vep_cache_dir - VEP cache directory, if not doing online VEP db lookups.  Default is "/data/D_VEP"
+    submit_cmd - command to initiate execution of generated script.  Default value 'bash', can set as 'cat' to allow step-by-step execution for debugging
+        Replace with -d flag in future
+    output_vep - write final annotated merged file in VEP rather than VCF format
+    annotate_intermediate - VEP-annotate intermediate output files
+    varscan_config_snp - path to varscan_snp.ini file, required for varscan run
+    varscan_config_indel - path to varscan_indel.ini file, required for varscan run
+    pindel_config - path to pindel.ini file, required for pindel parsing
+    centromere_bed - path to BED file describing centromere regions to exclude for pindel analysis.  See SomaticWrapper/C_Centromeres
+        Default: sw_dir/image.setup/C_Centromeres/pindel-centromere-exclude.bed
+    gatk - path to GATK Jar file.  Default: /usr/local/GenomeAnalysisTK-3.8-0-ge9d806836/GenomeAnalysisTK.jar
+    perl - path to PERL executable.  Default: /usr/bin/perl
+    vep_cmd - path to ensembl vep executable.  Default: /usr/local/ensembl-vep/vep
+    pindel_dir - path to Pindel installation dir.  Default: /usr/local/pindel
+    snpsift_jar - default: /usr/local/snpEff/SnpSift.jar
+    varscan_jar - default: /usr/local/VarScan.jar
+    picard_jar - default: /usr/local/picard.jar
+    status_rg - bam having read group or not: 1, yes and 0, no (default 1) (TODO: rename, describe in terms of pre-processing performed)
 OUT
 
-#die $usage unless @ARGV == 2;
-#my ( $run_dir, $step_number ) = @ARGV;
-#if ($run_dir =~/(.+)\/$/) {
-#    $run_dir = $1;
-#}
-#die $usage unless ($step_number >=0)&&(($step_number <= 10));
-#GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip
-# obtain script path
-#my $run_script_path = `dirname $0`;
-#__DEFAULT NUMBER OF BINS IE (MUST BE INTEGER)
-my $step_number = -1;
-my $status_rg = 1;
-my $status_rerun=0;
-#__HELP (BOOLEAN, DEFAULTS TO NO-HELP)
-my $help = 0;
+die $usage unless @ARGV >= 2;
+my ( $step_number, $config_file, $config_file2 ) = @ARGV;
 
-#__FILE NAME (STRING, NO DEFAULT)
-my $run_dir="";
-my $log_dir="";
-my $h37_REF="";
+print("Reading configuration file $config_file\n");
 
-#__PARSE COMMAND LINE
-my $status = &GetOptions (
-      "step=i" => \$step_number,
-      "srg=i" => \$status_rg,
-      "sre=i" => \$status_rerun,
-      "rdir=s" => \$run_dir,
-      "ref=s"  => \$h37_REF,
-      "log=s"  => \$log_dir,
-      "help" => \$help,
-    );
+# get paras from config file
+# for a "key = value" pair of "xxx.yyy.zzz = foo", generates entry $params{'zzz'}='foo'
+open(CONFIG, $config_file) or die "Could not open file '$config_file' $!";
+my (%paras);
+map { chomp;  if(!/^[#;]/ && /=/) { @_ = split /=/; $_[1] =~ s/ //g; my $v = $_[1]; $_[0] =~ s/ //g; $paras{ (split /\./, $_[0])[-1] } = $v } } (<CONFIG>);
+close(CONFIG);
 
-#print $status,"\n";
-
-if ($help || $run_dir eq "" || $log_dir eq ""  || $step_number<0 || $step_number>8) {
-      print $usage;
-      exit;
-   }
-
-print "run dir=",$run_dir,"\n";
-print "step num=",$step_number,"\n";
-print "status rerun=",$status_rerun,"\n";
-print "status readgroup=",$status_rg,"\n";
-
-if ($run_dir =~/(.+)\/$/) {
-    $run_dir = $1;
-}
-
-my $email = "scao\@wustl\.edu";
-# everything else below should be automated
-my $HOME = $ENV{HOME};
-my $working_name= (split(/\//,$run_dir))[-2];
-my $HOME1=$log_dir;
-#store job files here
-if (! -d $HOME1."/tmpgermline") {
-    `mkdir $HOME1"/tmpgermline"`;
-}
-my $job_files_dir = $HOME1."/tmpgermline";
-#store SGE output and error files here
-if (! -d $HOME1."/LSF_DIR_GERMLINE") {
-    `mkdir $HOME1"/LSF_DIR_GERMLINE"`;
-}
-my $lsf_file_dir = $HOME1."/LSF_DIR_GERMLINE";
-#GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip
-# obtain script path
-my $script_dir="/gscuser/scao/scripts/git/germlinewrapper";
-
-my $run_script_path=$script_dir;
-chomp $run_script_path;
-$run_script_path = "/usr/bin/perl ".$run_script_path."/";
-print $run_script_path,"\n";
-my $hold_RM_job = "norm";
-my $hold_job_file = "";
-my $bsub_com = "";
-my $sample_full_path = "";
-my $sample_name = "";
-my $h37_REF_bai=$h37_REF.".fai";
-my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
-my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
-#my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
-my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
-#my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
-my $pindel="/gscuser/qgao/tools/pindel/pindel";
-my $PINDEL_DIR="/gscuser/qgao/tools/pindel";
-#my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
-my $gatkexe="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
-my $picardexe="/gscuser/scao/tools/picard.jar";
-my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
-my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
-
-opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
-my @sample_dir_list = readdir DH;
-close DH;
-
-# check to make sure the input directory has correct structure
-#&check_input_dir($run_dir);
-# start data processsing
-
-# According to Jay, GenomeVIP labeling is unnecessary and unused.  Better to remove it to save processing space and time
-
-if ($step_number < 7) {
-#begin to process each sample
-    for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
-        $sample_name = $sample_dir_list[$i];
-        if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
-            $sample_full_path = $run_dir."/".$sample_name;
-            if (-d $sample_full_path) { # is a full path directory containing a sample
-                print $yellow, "\nSubmitting jobs for the sample ",$sample_name, "...",$normal, "\n";
-                if ($step_number == 1) {
-                    run_GATK($NBAM, $sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $gatk, $picard, $status_rg);
-                } elsif ($step_number == 2) {
-                    run_varscan($IN_bam_N, $sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $varscan_config_snp, $varscan_config_indel);
-                } elsif ($step_number == 3) {
-                    run_pindel($IN_bam_N, $sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $pindel, $f_centromere);
-                } elsif ($step_number == 4) {
-                    parse_pindel($sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $perl, $gvip_dir, $pindel2vcf, $pindel_config);
-                } elsif ($step_number == 5) {
-                    merge_vcf($sample_name, $sample_full_path, $job_files_dir, $bsub, $REF, $gatk);
-                } elsif ($step_number==6) {
-                    vcf_2_maf(xxx);
-                }
-            }
-        }
+# Goal of an optional secondary configuration file is to allow for global and local configuration files
+if (defined $config_file2) {
+    if (-e $config_file2) {
+        print("Reading secondary configuration file $config_file2\n");
+        open(CONFIG2, $config_file2);
+        map { chomp;  if(!/^[#;]/ && /=/) { @_ = split /=/; $_[1] =~ s/ //g; my $v = $_[1]; $_[0] =~ s/ //g; $paras{ (split /\./, $_[0])[-1] } = $v } } (<CONFIG2>);
+        close(CONFIG2);
+    } else {
+        print("Optional configuration file $config_file2 does not exist.  Continuing. \n");
     }
 }
 
-if($step_number==7 || $step_number==0) {
+map { print; print "\t"; print $paras{$_}; print "\n" } keys %paras;
 
-# src/generate_report.pm
+# Test for mandatory parameters
+die("normal_bam undefined in $config_file\n") unless exists $paras{'normal_bam'}; my $normal_bam = $paras{'normal_bam'};
+die("reference_fasta undefined in $config_file\n") unless exists $paras{'reference_fasta'}; my $ref = $paras{'reference_fasta'};
+die("sample_name undefined in $config_file\n") unless exists $paras{'sample_name'}; my $sample_name = $paras{'sample_name'};
+# Note that some arguments which are required only for specific steps are defined when step is called, e.g. pindel_config
 
+die("Normal BAM $normal_bam does not exist \n") if not -e $normal_bam;
+die("Reference $reference_fasta does not exist \n") if not -e $reference_fasta;
+
+# Optional arguments.  We define all default values here
+my $centromere_bed="$sw_dir/image.setup/C_Centromeres/pindel-centromere-exclude.bed"; if (exists $paras{'centromere_bed'} ) { $centromere_bed=$paras{'centromere_bed'}; }
+my $sw_dir="/usr/local/somaticwrapper"; if (exists $paras{'sw_dir'} ) { $sw_dir=$paras{'sw_dir'}; }
+my $bsub = "bash"; if (exists $paras{'submit_cmd'} ) { $bsub=$paras{'submit_cmd'}; }
+my $gatk="/usr/local/GenomeAnalysisTK-3.8-0-ge9d806836/GenomeAnalysisTK.jar"; if (exists $paras{'gatk'} ) { $gatk=$paras{'gatk'}; }
+my $perl = "/usr/bin/perl"; if (exists $paras{'perl'} ) { $perl=$paras{'perl'}; }
+my $vep_cmd="/usr/local/ensembl-vep/vep"; if (exists $paras{'vep_cmd'} ) { $vep_cmd=$paras{'vep_cmd'}; }
+my $pindel_dir="/usr/local/pindel"; if (exists $paras{'pindel_dir'} ) { $pindel_dir=$paras{'pindel_dir'}; }
+my $sw_data="/data/data"; if (exists $paras{'sw_data'} ) { $sw_data=$paras{'sw_data'}; }
+my $snpsift_jar="/usr/local/snpEff/SnpSift.jar"; if (exists $paras{'snpsift_jar'} ) { $snpsift_jar=$paras{'snpsift_jar'}; }
+my $varscan_jar="/usr/local/VarScan.jar"; if (exists $paras{'varscan_jar'} ) { $varscan_jar=$paras{'varscan_jar'}; }
+my $picard="/usr/local/picard.jar"; if (exists $paras{'picard_jar'} ) { $varscan_jar=$paras{'picard_jar'}; }
+my $status_rg = 1; if (exists $paras{'status_rg'} ) { $varscan_jar=$paras{'status_rg'}; }
+my $gvip_dir="$sw_dir/GenomeVIP"; # GenomeVIP is not distributed separately so hard code the path
+
+# We are retaining VEP plumbing to simplify future implementation
+# die("assembly undefined in $config_file\n") unless exists $paras{'assembly'};
+# my $assembly = $paras{'assembly'};
+my $use_vep_db=0; if (exists $paras{'use_vep_db'} ) { $use_vep_db=$paras{'use_vep_db'}; }
+my $vep_cache_dir = "/data/D_VEP"; if (exists $paras{'vep_cache_dir'} ) { $vep_cache_dir=$paras{'vep_cache_dir'}; }
+my $output_vep = 0; if (exists $paras{'output_vep'} ) { $output_vep=$paras{'output_vep'}; }
+my $annotate_intermediate=0; if (exists $paras{'annotate_intermediate'} ) { $annotate_intermediate=$paras{'annotate_intermediate'}; }
+
+### begin to process each sample ###
+my $sample_full_path = $sw_data."/".$sample_name;
+
+# automatically generated scripts in runtime
+my $job_files_dir="$sample_full_path/runtime";
+system("mkdir -p $job_files_dir");
+
+print("Using reference $ref\n");
+print("SomaticWrapper dir: $sw_dir \n");
+print("Analysis dir: $sample_full_path\n");
+print("Run script dir: $job_files_dir\n");
+
+
+print $yellow, "\nSubmitting jobs for the sample ",$sample_name, "...",$normal, "\n";
+if ($step_number == 1) {
+    run_GATK($normal_bam, $sample_name, $sample_full_path, $job_files_dir, $bsub, $ref, $gatk, $picard, $status_rg);
+} elsif ($step_number == 2) {
+    die("varscan_config_snp undefined in $config_file\n") unless exists $paras{'varscan_config_snp'};
+    die("varscan_config_indel undefined in $config_file\n") unless exists $paras{'varscan_config_indel'};
+    run_varscan($normal_bam, $sample_name, $sample_full_path, $job_files_dir, $bsub, $ref, $paras{'varscan_config_snp'}, $paras{'varscan_config_indel'});
+} elsif ($step_number == 3) {
+    run_pindel($normal_bam, $sample_name, $sample_full_path, $job_files_dir, $bsub, $ref, $pindel, $centromere_bed);
+} elsif ($step_number == 4) {
+    die("pindel_config undefined in $config_file\n") unless exists $paras{'pindel_config'};
+    parse_pindel($sample_name, $sample_full_path, $job_files_dir, $bsub, $ref, $perl, $gvip_dir, $paras{'pindel_config'});
+} elsif ($step_number == 5) {
+    merge_vcf($sample_name, $sample_full_path, $job_files_dir, $bsub, $ref, $gatk);
+} else  {
+    print $usage;
+    die("Unknown step $step_number\n");
 }
 
 

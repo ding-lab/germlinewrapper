@@ -26,10 +26,16 @@ TODO: track the modifications made to germline_calling_v1.0.pl and incorporate t
 ---
 Jan 2018 update: development work taking place on branch "d2", and 'docker' branch seems like it can go away
 
+According to Jay, GenomeVIP labeling is unnecessary and unused.  Better to remove it to save processing space and time
+
 Song writes 1/11/18,
     After extensive test, I found splice_site_check.pl may be not necessary in the
     pipeline. vep can do the correct annotation, thus there is no need for
     additional splice-site checking. Thus, splice_site_check.pl part can be removed
     in both somatic and germline pipelines. 
 
-This will be incorporated
+Song also writes 1/30/18,
+    vcf format is fine to me for germline
+    for WGS germline data, we can not do vcf annotation.  It is very time-consuming
+
+Goal then is to keep everything as VCF, and have VEP annotation be optional (but available for final and/or intermediate files)

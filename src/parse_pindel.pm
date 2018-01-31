@@ -7,7 +7,6 @@ sub parse_pindel {
     my $REF = shift;
     my $perl = shift;
     my $gvip_dir = shift;
-    my $pindel2vcf = shift;  #  $pindel_dir/pindel2vcf
     my $pindel_config = shift;
 
     $current_job_file = "j4_parse_pindel_g_".$sample_name.".sh";
@@ -29,7 +28,7 @@ sub parse_pindel {
 
     open(OUT, ">>$out") or die $!;
     print OUT <<"EOF";
-pindel.filter.pindel2vcf = $pindel2vcf
+pindel.filter.pindel2vcf = $pindel_dir/pindel2vcf
 pindel.filter.variants_file = $pin_var_file
 pindel.filter.REF = $REF
 pindel.filter.date = 000000
