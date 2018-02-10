@@ -153,7 +153,9 @@ my $f_ref_annot="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_s
 my $pindel="/gscuser/qgao/tools/pindel/pindel";
 my $PINDEL_DIR="/gscuser/qgao/tools/pindel";
 #my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
-my $gatkexe="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
+my $gatkexe3="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
+#my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk-package-4.0.0.0-local.jar";
+my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk";
 my $picardexe="/gscuser/scao/tools/picard.jar";
 my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
 my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
@@ -328,25 +330,33 @@ sub bsub_gatk{
 	print GATK "java  \${JAVA_OPTS} -jar "."$picardexe AddOrReplaceReadGroups I=\${NBAM} O=\${NBAM_rg} RGID=1 RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=20\n";
 	print GATK "samtools index \${NBAM_rg}\n";
    # print GATK "else\n";
-	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+
+	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -O \${rawvcf} -R $h37_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+
+	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
     print GATK "rm \${NBAM_rg}\n";
     print GATK "rm \${NBAM_rg_bai}\n";
 	print GATK "else\n";
-	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+	print GATK "echo \"run gatk4\"","\n";
+	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+    #print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h37_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
     print GATK "fi\n";
 	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";
-	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
-	print GATK "java \${JAVA_OPTS} -jar "."$gatkexe -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";	
+	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
+	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
+ 	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
+	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n"; 
+	#print GATK "fi\n";
 	close GATK;
     #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #system ( $bsub_com );
 
- my $sh_file=$job_files_dir."/".$current_job_file;
+ 	my $sh_file=$job_files_dir."/".$current_job_file;
 	
     if($q_name eq "research-hpc")
     {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
     }
 
 system ( $bsub_com );
@@ -456,6 +466,8 @@ sub bsub_varscan{
     else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
     }
 
+	    print $bsub_com;
+    system ($bsub_com);
 }
 
 sub bsub_pindel{
