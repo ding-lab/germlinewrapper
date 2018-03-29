@@ -47,7 +47,7 @@ hg19: /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta
 
 $red      	 [1]  Run gatk
 $red         [2]  Run varscan
-$red 		 [3]  Run Pindel
+$red 		 [3]  Run pindel
 $yellow 	 [4]  Parse pindel
 $purple 	 [5]  Merge calls
 $green 		 [6]  VCF2MAF
@@ -76,6 +76,8 @@ my $run_dir="";
 my $log_dir="";
 my $h37_REF="";
 my $q_name="";
+my $chr_status=0; 
+
 
 #__PARSE COMMAND LINE
 my $status = &GetOptions (
@@ -150,8 +152,8 @@ my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
 my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
 my $f_ref_annot="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
 #my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
-my $pindel="/gscuser/qgao/tools/pindel/pindel";
-my $PINDEL_DIR="/gscuser/qgao/tools/pindel";
+my $pindel="/gscuser/scao/tools/pindel/pindel";
+my $PINDEL_DIR="/gscuser/scao/tools/pindel";
 #my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $gatkexe3="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
 #my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk-package-4.0.0.0-local.jar";
@@ -159,6 +161,10 @@ my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk";
 my $picardexe="/gscuser/scao/tools/picard.jar";
 my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
 my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
+
+my $first_line=`head -n 1 $h37_REF`; 
+
+if($first_line=~/^\>chr/) { $chr_status=1; }
 
 opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
@@ -251,6 +257,9 @@ if($step_number==7 || $step_number==0)
 }
 sub bsub_gatk{
     #my $cdhitReport = $sample_full_path."/".$sample_name.".fa.cdhitReport";
+
+	my @chrlist=("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y");
+  
     $current_job_file = "j1_gatk_g_".$sample_name.".sh";
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
@@ -300,10 +309,10 @@ sub bsub_gatk{
   	print GATK "NBAM_rg=".$sample_full_path."/".$sample_name.".N.rg.bam\n";
 	print GATK "NBAM_rg_bai=".$sample_full_path."/".$sample_name.".N.rg.bam.bai\n";
 	print GATK "myRUNDIR=".$sample_full_path."/gatk\n";
-    print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.vcf\n";
-	print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.vcf\n";
-	print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.vcf\n";
-	print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.vcf\n";
+    #print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.vcf\n";
+	#print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.vcf\n";
+	#print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.vcf\n";
+	#print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.vcf\n";
     print GATK "RUNDIR=".$sample_full_path."\n";
     print GATK "CONFDIR="."/gscmnt/gc2521/dinglab/cptac_prospective_samples/exome/config\n";
     print GATK "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
@@ -330,22 +339,45 @@ sub bsub_gatk{
 	print GATK "java  \${JAVA_OPTS} -jar "."$picardexe AddOrReplaceReadGroups I=\${NBAM} O=\${NBAM_rg} RGID=1 RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=20\n";
 	print GATK "samtools index \${NBAM_rg}\n";
    # print GATK "else\n";
-
-	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -O \${rawvcf} -R $h37_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
-
+    foreach my $chr (@chrlist)
+    {
+	my $chr1=$chr; 
+	if($chr_status==1) { $chr1="chr".$chr; }
+    print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
+	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -L $chr1 -O \${rawvcf} -R $h37_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+	}
 	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
     print GATK "rm \${NBAM_rg}\n";
     print GATK "rm \${NBAM_rg_bai}\n";
 	print GATK "else\n";
 	print GATK "echo \"run gatk4\"","\n";
-	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
-    #print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h37_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+#	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+	foreach my $chr (@chrlist)
+	{
+	 my $chr1=$chr;
+     if($chr_status==1) { $chr1="chr".$chr; }
+     print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
+	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h37_REF -L $chr1 -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+	}
     print GATK "fi\n";
-	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";
+
+	#print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";
 	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
 	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
+    foreach my $chr (@chrlist)
+    {
+	#my $chr1=$chr;
+    #if($chr_status==1) { $chr1="chr".$chr; }
+    print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
+    print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.$chr.vcf\n";
+    print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.$chr.vcf\n";
+    print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.$chr.vcf\n";
+	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";	
  	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
-	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n"; 
+	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
+	}
+
+	print GATK "     ".$run_script_path."merge_gatk.pl $sample_full_path $sample_name\n"; 
 	#print GATK "fi\n";
 	close GATK;
     #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
@@ -356,7 +388,9 @@ sub bsub_gatk{
     if($q_name eq "research-hpc")
     {
     $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
+    else 
+	{        
+	$bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err sh $sh_file\n";
     }
 
 system ( $bsub_com );
@@ -448,7 +482,7 @@ sub bsub_varscan{
     print VARSCAN "fi\n";
     print VARSCAN "echo \"$IN_bam_N\" > \${BAMLIST}\n";
 	#print VARSCAN "ncols=\$(echo \"3*( \$(wc -l < \$BAMLIST) +1)\"|bc)\n";
- 	 print VARSCAN "ncols=6\n";
+ 	print VARSCAN "ncols=6\n";
 	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
  	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
     close VARSCAN;
