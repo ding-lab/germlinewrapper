@@ -5,20 +5,20 @@
 
 use strict;
 use warnings;
-die unless @ARGV == 2;
+die unless @ARGV == 1;
 
 my ($run_dir,$sample_name)=@ARGV;
 
-my $pindel_vcf=$run_dir."/pindel/pindel.out.raw.CvgVafStrand_pass.Homopolymer_pass.vcf"; 
-my $gatk_vcf=$run_dir."/gatk/".$sample_name.".indel.gvip.vcf";
-my $vars_vcf=$run_dir."/varscan/".$sample_name."raw.indel.vcf";
-my $gatk_vcf_filter=$run_dir."/gatk/".$sample_name.".indel.gvip.filtered.vcf";
-my $vars_vcf_filter=$run_dir."/varscan/".$sample_name."raw.indel.filtered.vcf";
+my $pindel_vcf=$run_dir."/pindel.vcf"; 
+my $gatk_vcf=$run_dir."/gatk.indel.vcf";
+my $vars_vcf=$run_dir."/varscan.indel.vcf";
+my $gatk_vcf_filter=$run_dir."/gatk.indel.filtered.vcf";
+my $vars_vcf_filter=$run_dir."/varscan.indel.filtered.vcf";
 
-my $gatk_snv_vcf=$run_dir."/gatk/".$sample_name.".snv.gvip.vcf";
-my $vars_snv_vcf=$run_dir."/varscan/".$sample_name."raw.snp.vcf";
-my $gatk_snv_vcf_filter=$run_dir."/gatk/".$sample_name.".snv.gvip.filtered.vcf";
-my $vars_snv_vcf_filter=$run_dir."/varscan/".$sample_name."raw.snp.filtered.vcf";
+my $gatk_snv_vcf=$run_dir."/gatk.snp.vcf";
+my $vars_snv_vcf=$run_dir."/varscan..snp.vcf";
+my $gatk_snv_vcf_filter=$run_dir."/gatk.snp.filtered.vcf";
+my $vars_snv_vcf_filter=$run_dir."/varscan.snp.filtered.vcf";
 
 my $vcf_cutoff=0.2; 
 my $min_coverage=10; 
