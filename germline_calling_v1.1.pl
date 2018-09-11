@@ -74,7 +74,7 @@ my $help = 0;
 #__FILE NAME (STRING, NO DEFAULT)
 my $run_dir="";
 my $log_dir="";
-my $h37_REF="";
+my $h38_REF="";
 my $q_name="";
 my $chr_status=0; 
 
@@ -85,7 +85,7 @@ my $status = &GetOptions (
       "srg=i" => \$status_rg,
       "sre=i" => \$status_rerun,
       "rdir=s" => \$run_dir,
-      "ref=s"  => \$h37_REF,
+      "ref=s"  => \$h38_REF,
       "log=s"  => \$log_dir,
 	  "q=s" => \$q_name,
       "help" => \$help,
@@ -145,16 +145,16 @@ my $hold_job_file = "";
 my $bsub_com = "";
 my $sample_full_path = "";
 my $sample_name = "";
-my $h37_REF_bai=$h37_REF.".fai";
+my $h38_REF_bai=$h38_REF.".fai";
 my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
-#my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
+#my $h38_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
 my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
 my $f_ref_annot="/gscmnt/gc2518/dinglab/scao/tools/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa";
 my $vepcache="/gscmnt/gc2518/dinglab/scao/tools/vep/v85";
 
 #/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
-#my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
+#my $h38_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
 my $pindel="/gscuser/scao/tools/pindel/pindel";
 my $PINDEL_DIR="/gscuser/scao/tools/pindel";
 #my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
@@ -166,7 +166,7 @@ my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/dat
 my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
 my $vepcmd="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
 
-my $first_line=`head -n 1 $h37_REF`; 
+my $first_line=`head -n 1 $h38_REF`; 
 
 if($first_line=~/^\>chr/) { $chr_status=1; }
 
@@ -348,26 +348,26 @@ sub bsub_gatk{
 	my $chr1=$chr; 
 	if($chr_status==1) { $chr1="chr".$chr; }
     print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
-	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -L $chr1 -O \${rawvcf} -R $h37_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -L $chr1 -O \${rawvcf} -R $h38_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
 	}
-	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
     print GATK "rm \${NBAM_rg}\n";
     print GATK "rm \${NBAM_rg_bai}\n";
 	print GATK "else\n";
 	print GATK "echo \"run gatk4\"","\n";
-#	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+#	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
 	foreach my $chr (@chrlist)
 	{
 	 my $chr1=$chr;
      if($chr_status==1) { $chr1="chr".$chr; }
      print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
-	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h37_REF -L $chr1 -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h38_REF -L $chr1 -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
 	}
     print GATK "fi\n";
 
 	#print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";
-	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
-	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
+	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
+	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
     foreach my $chr (@chrlist)
     {
 	#my $chr1=$chr;
@@ -377,8 +377,8 @@ sub bsub_gatk{
     print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.$chr.vcf\n";
     print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.$chr.vcf\n";
 	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";	
- 	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
-	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
+ 	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
+	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
 	}
 
 	print GATK "     ".$run_script_path."merge_gatk.pl $sample_full_path $sample_name\n"; 
@@ -487,8 +487,8 @@ sub bsub_varscan{
     print VARSCAN "echo \"$IN_bam_N\" > \${BAMLIST}\n";
 	#print VARSCAN "ncols=\$(echo \"3*( \$(wc -l < \$BAMLIST) +1)\"|bc)\n";
  	print VARSCAN "ncols=6\n";
-	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
- 	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
+	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h38_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
+ 	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h38_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
     close VARSCAN;
     #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #system ( $bsub_com );
@@ -546,7 +546,7 @@ sub bsub_pindel{
     print PINDEL "fi\n";
     #print PINDEL "rm \${CONFIG}\n";
 	print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" > \${CONFIG}\n";
-    print PINDEL "$pindel -T 4 -f $h37_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
+    print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
     close PINDEL;
    # $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #system ( $bsub_com );
@@ -604,7 +604,7 @@ sub bsub_parse_pindel {
     print PP "cat > \${RUNDIR}/pindel/pindel_filter.input <<EOF\n";
     print PP "pindel.filter.pindel2vcf = $PINDEL_DIR/pindel2vcf\n";
     print PP "pindel.filter.variants_file = \${RUNDIR}/pindel/pindel.out.raw\n";
-    print PP "pindel.filter.REF = $h37_REF\n";
+    print PP "pindel.filter.REF = $h38_REF\n";
     print PP "pindel.filter.date = 000000\n";
     print PP "pindel.filter.heterozyg_min_var_allele_freq = 0.2\n";
     print PP "pindel.filter.homozyg_min_var_allele_freq = 0.8\n";
@@ -698,9 +698,9 @@ sub bsub_merge_vcf{
     print MERGE "merged.vep.reffasta = $f_ref_annot\n";
     print MERGE "merged.vep.assembly = GRCh38\n";
     print MERGE "EOF\n";
-   # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h37_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
+   # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
     print MERGE "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
-	print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h37_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";	
+	print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";	
 #-priority gsnp,vsnp,gindel,vindel,pindel\n";
     #print MERGE "     ".$run_script_path."vaf_filter.pl \${RUNDIR}\n";
     #print MERGE "cd \${RUNDIR}\n";
