@@ -1,5 +1,8 @@
 # germlinewrapper
-detect germline variants from normal samples
+
+HG38:
+
+detect germline variants from normal sample
 
 ### Song Cao ###
 

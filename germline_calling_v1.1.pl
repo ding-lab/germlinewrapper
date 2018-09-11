@@ -150,7 +150,10 @@ my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
 #my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
 my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
-my $f_ref_annot="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
+my $f_ref_annot="/gscmnt/gc2518/dinglab/scao/tools/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa";
+my $vepcache="/gscmnt/gc2518/dinglab/scao/tools/vep/v85";
+
+#/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
 #my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
 my $pindel="/gscuser/scao/tools/pindel/pindel";
 my $PINDEL_DIR="/gscuser/scao/tools/pindel";
@@ -161,6 +164,7 @@ my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk";
 my $picardexe="/gscuser/scao/tools/picard.jar";
 my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
 my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
+my $vepcmd="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
 
 my $first_line=`head -n 1 $h37_REF`; 
 
@@ -688,10 +692,11 @@ sub bsub_merge_vcf{
     print MERGE "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
     print MERGE "merged.vep.vcf = ./merged.filtered.vcf\n";
     print MERGE "merged.vep.output = ./merged.VEP.vcf\n";
-    print MERGE "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
-    print MERGE "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache\n";
-    print MERGE "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
-    print MERGE "merged.vep.assembly = GRCh37\n";
+    print MERGE "merged.vep.vep_cmd = $vepcmd\n";
+#="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_pre/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
+    print MERGE "merged.vep.cachedir = $vepcache\n";
+    print MERGE "merged.vep.reffasta = $f_ref_annot\n";
+    print MERGE "merged.vep.assembly = GRCh38\n";
     print MERGE "EOF\n";
    # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h37_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
     print MERGE "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
@@ -761,10 +766,11 @@ sub bsub_vcf_2_maf{
     print MAF "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
     print MAF "merged.vep.vcf = ./merged.vcf\n";
     print MAF "merged.vep.output = ./merged.VEP.vcf\n";
-    print MAF "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
-    print MAF "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/cache\n";
+    print MAF "merged.vep.vep_cmd = $vepcmd\n";
+#/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
+    print MAF "merged.vep.cachedir = $vepcache\n";
    	print MAF "merged.vep.reffasta = $f_ref_annot\n";
-    print MAF "merged.vep.assembly = GRCh37\n";
+    print MAF "merged.vep.assembly = GRCh38\n";
     print MAF "EOF\n";
 	print MAF "F_VCF_0=".$sample_full_path."/merged.vcf\n";
     print MAF "F_VCF_1=".$sample_full_path."/merged.1.vcf\n";
