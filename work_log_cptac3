@@ -1,0 +1,3 @@
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/scao/cptac3/luad.b4.ccrc.left/wxs/germline --log /gscmnt/gc2737/ding/scao/cptac3/luad.b4.ccrc.left/wxs --ref /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta --step 1 --q research-hpc
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/scao/cptac3/luad.b4.ccrc.left/wxs/germline --log /gscmnt/gc2737/ding/scao/cptac3/luad.b4.ccrc.left/wxs --ref /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta --step 2 --q research-hpc
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/scao/cptac3/luad.b4.ccrc.left/wxs/germline --log /gscmnt/gc2737/ding/scao/cptac3/luad.b4.ccrc.left/wxs --ref /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta --step 3 --q research-hpc
