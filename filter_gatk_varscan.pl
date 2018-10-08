@@ -7,6 +7,8 @@ use strict;
 use warnings;
 die unless @ARGV == 2;
 
+## minmum vaf cut off for germline 0.2 ##
+
 my ($run_dir,$sample_name)=@ARGV;
 
 my $pindel_vcf=$run_dir."/pindel/pindel.out.raw.CvgVafStrand_pass.Homopolymer_pass.vcf"; 
@@ -29,16 +31,24 @@ my %varsvcf=();
 my %removegatk=();
 my %removevars=();
 
+## INP: PINDEL vcf ##
+## ING: GATK indel vcf ##
+## INV: VARSCAN indel vcf ##
 open(INP,"<$pindel_vcf"); 
 open(ING,"<$gatk_vcf"); 
 open(INV,"<$vars_vcf"); 
 open(OUTG,">$gatk_vcf_filter");
 open(OUTV,">$vars_vcf_filter"); 
+
+###INSG: gatk snv ##
+## INSV: varscan snv ##
+
 open(INSG,"<$gatk_snv_vcf");
 open(INSV,"<$vars_snv_vcf");
 open(OUTSG,">$gatk_snv_vcf_filter"); 
 open(OUTSV,">$vars_snv_vcf_filter");
 
+## indel ##
 while(<INP>)
   {
 	my $line=$_; 
@@ -109,6 +119,8 @@ foreach my $id (sort keys %gatkvcf)
 			  #<STDIN>;
 			}  	
 		}
+
+### called by both varscan and gatk ##
 	
 		if((!defined $varsvcf{$id}) || (defined $varsvcf{$id} && ($varsvcf{$id} ne $gatkvcf{$id})))
         {
