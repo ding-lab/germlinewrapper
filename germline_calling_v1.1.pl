@@ -149,18 +149,22 @@ my $h37_REF_bai=$h37_REF.".fai";
 my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
 #my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
-my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
-my $f_ref_annot="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
 #my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
 my $pindel="/gscuser/scao/tools/pindel/pindel";
+my $samtools="/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin";
 my $PINDEL_DIR="/gscuser/scao/tools/pindel";
 #my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $gatkexe3="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
 #my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk-package-4.0.0.0-local.jar";
 my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk";
 my $picardexe="/gscuser/scao/tools/picard.jar";
-my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
 my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
+
+## reference or database ##
+my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
+my $f_ref_annot="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
+my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
+#my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
 
 my $first_line=`head -n 1 $h37_REF`; 
 
