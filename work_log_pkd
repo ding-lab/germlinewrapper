@@ -1,1 +1,3 @@
-perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/scao/pkd/hg19/germline/r4 --ref /gscmnt/gc2737/ding/yize.li/3.PKD/Reference/hg19_reference/genome.fa --step 4 --log /gscmnt/gc2737/ding/scao/pkd/hg19/germline --q research-hpc
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/scao/pkd/hg19/germline/r4 --ref /gscmnt/gc2737/ding/yize.li/3.PKD/Reference/hg19_reference/genome.fa --step 1 --log /gscmnt/gc2737/ding/scao/pkd/hg19/germline --q research-hpc --sre 1
+
+#perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/scao/pkd/hg19/germline/r4 --ref /gscmnt/gc2737/ding/yize.li/3.PKD/Reference/hg19_reference/genome.fa --step 4 --log /gscmnt/gc2737/ding/scao/pkd/hg19/germline --q research-hpc
