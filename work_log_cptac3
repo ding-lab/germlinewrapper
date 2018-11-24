@@ -1,1 +1,25 @@
-perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/yize.li/3.PKD/WXS/BAM/data_germline --log /gscmnt/gc2524/dinglab/PKDrun --ref /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta --step 7 --q research-hpc --sre 1 
+#perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/yize.li/3.PKD/WXS/BAM/data_germline --log /gscmnt/gc2524/dinglab/PKDrun --ref /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta --step 7 --q research-hpc --sre 1
+## LUAD ##
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 1 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 2 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2 
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 3 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 4 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 5 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/luad.b56.2
+
+### UCEC ##
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/ucec/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 1 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/ucec
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/ucec/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 2 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/ucec
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/ucec/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 3 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/ucec
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/ucec/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 4 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/ucec
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2518/dinglab/cptac3/hg38/ucec/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 5 --q research-hpc --log /gscmnt/gc2518/dinglab/cptac3/hg38/ucec
+
+### CCRC ##
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 1 --q research-hpc --log /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call
+
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 2 --q research-hpc --log /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call
+
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 3 --q research-hpc --log /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call
+
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 4 --q research-hpc --log /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call
+
+perl germline_calling_v1.1.pl --rdir /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call/germline --ref /gscmnt/gc2521/dinglab/mwyczalk/somatic-wrapper-data/image.data/A_Reference/GRCh38.d1.vd1.fa --step 5 --q research-hpc --log /gscmnt/gc2521/dinglab/cptac3/CCRC/hg38_alignment_call
