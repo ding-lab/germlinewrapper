@@ -1,10 +1,10 @@
 # germlinewrapper V1.1
 
-HG38:
+for HG38 reference
 
-detect germline variants from normal sample
+Detect germline variants from normal sample
 
-### Song Cao ###
+### Song Cao, email: scao@wustl.edu ###
 
 ### ********you must enter the directory with germlinewrapper pipeline to submit the jobs******* ###
 
