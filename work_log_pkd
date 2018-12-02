@@ -1,1 +1,0 @@
-perl germline_calling_v1.1.pl --rdir /gscmnt/gc2737/ding/yize.li/3.PKD/WXS/BAM/data_germline --log /gscmnt/gc2524/dinglab/PKDrun --ref /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta --step 7 --q research-hpc --sre 1 
