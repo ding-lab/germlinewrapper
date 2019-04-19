@@ -49,9 +49,11 @@ $red      	 [1]  Run gatk
 $red         [2]  Run varscan
 $red 		 [3]  Run pindel
 $yellow 	 [4]  Parse pindel
-$purple 	 [5]  Merge calls
-$green 		 [6]  VCF2MAF
-$cyan 		 [7]  Generate final maf
+$yellow      [5]  filter vcf
+$purple 	 [6]  Merge calls
+$green 		 [7]  VCF2MAF
+$cyan 		 [8]  Generate final maf
+
 $normal
 OUT
 
@@ -178,7 +180,7 @@ close DH;
 #&check_input_dir($run_dir);
 # start data processsing
 
-if ($step_number < 7) {
+if ($step_number < 8) {
     #begin to process each sample
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
@@ -193,6 +195,7 @@ if ($step_number < 7) {
                    &bsub_varscan();
                    &bsub_pindel();
 				   &bsub_parse_pindel();
+				   &bsub_filter_vcf();
 				   &bsub_merge_vcf();
 				   &bsub_vcf_2_maf();
                    #&bsub_vep();
@@ -206,8 +209,10 @@ if ($step_number < 7) {
                 }elsif ($step_number == 4) {
                     &bsub_parse_pindel(1);
                 }elsif ($step_number == 5) {
+                    &bsub_filter_vcf(1);
+                }elsif ($step_number == 6) {
                     &bsub_merge_vcf(1);
-                }elsif ($step_number==6) {
+                }elsif ($step_number==7) {
 				    &bsub_vcf_2_maf(1);		
 				}
 				}
@@ -215,7 +220,7 @@ if ($step_number < 7) {
 		}
 	}
 
-if($step_number==7 || $step_number==0)
+if($step_number==8 || $step_number==0)
     {
 
     print $yellow, "Submitting jobs for generating the report for the run ....",$normal, "\n";
@@ -639,6 +644,91 @@ sub bsub_parse_pindel {
     }
 
 
+sub bsub_filter_vcf{
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j5_filter_vcf_g.".$sample_name.".sh";
+    my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
+    my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
+
+
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+
+   if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
+    open(FILTER, ">$job_files_dir/$current_job_file") or die $!;
+    print FILTER "#!/bin/bash\n";
+    #print MERGE "#BSUB -n 1\n";
+    ##print MERGE "#BSUB -R \"rusage[mem=30000]\"","\n";
+    #print MERGE "#BSUB -M 30000000\n";
+    #print MERGE "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print MERGE "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    #print MERGE "#BSUB -J $current_job_file\n";
+    #print MERGE "#BSUB -q long\n";
+    #print MERGE "#BSUB -q ding-lab\n"; 
+    #print MERGE "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print VARSCANP "#BSUB -q long\n";
+    #print MERGE "#BSUB -q research-hpc\n";
+    print FILTER "#BSUB -w \"$hold_job_file\"","\n";
+    print FILTER "RUNDIR=".$sample_full_path."\n";
+    #print VEP "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
+    print FILTER "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
+    print FILTER "export JAVA_HOME=$java_dir\n";
+    print FILTER "export JAVA_OPTS=\"-Xmx10g\"\n";
+    print FILTER "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
+    print FILTER "GATK_snv_VCF="."\${RUNDIR}/gatk/$sample_name.snv.gvip.filtered.vcf\n";
+    print FILTER "GATK_indel_VCF="."\${RUNDIR}/gatk/$sample_name.indel.gvip.filtered.vcf\n";
+    print FILTER "VARSCAN_snv_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.snp.filtered.vcf\n";
+    print FILTER "VARSCAN_indel_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.indel.filtered.vcf\n";
+    print FILTER "PINDEL_VCF="."\${RUNDIR}/pindel/pindel.out.raw.CvgVafStrand_pass.Homopolymer_pass.vcf\n";
+    #print FILTER "MERGER_OUT="."\${RUNDIR}/merged.vcf\n";
+    #print FILTER "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
+    #print FILTER "merged.vep.vcf = ./merged.filtered.vcf\n";
+    #print FILTER "merged.vep.output = ./merged.VEP.vcf\n";
+    #print FILTER "merged.vep.vep_cmd = $vepcmd\n";
+#="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_pre/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
+    #print FILTER "merged.vep.cachedir = $vepcache\n";
+    #print FILTER "merged.vep.reffasta = $f_ref_annot\n";
+    #print FILTER "merged.vep.assembly = GRCh38\n";
+    #print FILTER "EOF\n";
+   # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
+    ### snv 
+    print FILTER "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
+    #print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";
+#-priority gsnp,vsnp,gindel,vindel,pindel\n";
+    #print MERGE "     ".$run_script_path."vaf_filter.pl \${RUNDIR}\n";
+    #print MERGE "cd \${RUNDIR}\n";
+    #print MERGE ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
+    #print MERGE "     ".$run_script_path."vep_annotator.pl ./vep.merged.input >&./vep.merged.log\n";
+    close FILTER;
+    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #$bsub_com = "sh $job_files_dir/$current_job_file\n";
+    #system ($bsub_com);
+
+    my $sh_file=$job_files_dir."/".$current_job_file;
+
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";
+    }
+
+    print $bsub_com;
+
+}
+
 sub bsub_merge_vcf{
 
     my ($step_by_step) = @_;
@@ -648,7 +738,7 @@ sub bsub_merge_vcf{
         $hold_job_file = $current_job_file;
     }
 
-    $current_job_file = "j5_merge_vcf_g.".$sample_name.".sh";
+    $current_job_file = "j6_merge_vcf_g.".$sample_name.".sh";
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 
@@ -700,7 +790,7 @@ sub bsub_merge_vcf{
     print MERGE "EOF\n";
    # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
 	### snv 
-    print MERGE "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
+    #print MERGE "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
 	print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";	
 #-priority gsnp,vsnp,gindel,vindel,pindel\n";
     #print MERGE "     ".$run_script_path."vaf_filter.pl \${RUNDIR}\n";
@@ -737,7 +827,7 @@ sub bsub_vcf_2_maf{
     }
 
 
-    $current_job_file = "j6_vcf_2_maf.".$sample_name.".sh";
+    $current_job_file = "j7_vcf_2_maf.".$sample_name.".sh";
     #my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 
