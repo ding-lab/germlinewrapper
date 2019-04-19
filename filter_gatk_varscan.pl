@@ -2,6 +2,7 @@
 
 ### snv: union call from varscan and gatk
 ### indel: callings from pindel or both gatak and varscan
+## coverage 10 ##
 
 use strict;
 use warnings;
