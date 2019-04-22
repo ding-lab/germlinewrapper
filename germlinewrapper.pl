@@ -726,7 +726,7 @@ sub bsub_filter_vcf{
     }
 
     print $bsub_com;
-
+	system ($bsub_com);
 }
 
 sub bsub_merge_vcf{
