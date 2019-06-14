@@ -551,8 +551,9 @@ sub bsub_pindel{
     print PINDEL "fi\n";
     #print PINDEL "rm \${CONFIG}\n";
 	print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" > \${CONFIG}\n";
-    print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
-    close PINDEL;
+    #print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
+	print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1\n";
+   	close PINDEL;
    # $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #system ( $bsub_com );
  	my $sh_file=$job_files_dir."/".$current_job_file;
