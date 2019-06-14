@@ -151,7 +151,7 @@ my $h38_REF_bai=$h38_REF.".fai";
 my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
 #my $h38_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
-my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
+#my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
 my $f_ref_annot="/gscmnt/gc2518/dinglab/scao/tools/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa";
 my $vepcache="/gscmnt/gc2518/dinglab/scao/tools/vep/v85";
 
@@ -164,7 +164,7 @@ my $gatkexe3="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysis
 #my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk-package-4.0.0.0-local.jar";
 my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk";
 my $picardexe="/gscuser/scao/tools/picard.jar";
-my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
+#my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
 my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
 my $vepcmd="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
 
@@ -901,7 +901,9 @@ sub bsub_vcf_2_maf{
     print MAF "rm \${F_VEP_2}\n";
     print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
     print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
-    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n"; 
+#    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n"; 
+	print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot\n";
+
 	print MAF "fi\n";
 	close MAF;
  	my $sh_file=$job_files_dir."/".$current_job_file;
