@@ -49,9 +49,11 @@ $red      	 [1]  Run gatk
 $red         [2]  Run varscan
 $red 		 [3]  Run pindel
 $yellow 	 [4]  Parse pindel
-$purple 	 [5]  Merge calls
-$green 		 [6]  VCF2MAF
-$cyan 		 [7]  Generate final maf
+$yellow      [5]  filter vcf
+$purple 	 [6]  Merge calls
+$green 		 [7]  VCF2MAF
+$cyan 		 [8]  Generate final maf
+
 $normal
 OUT
 
@@ -74,7 +76,7 @@ my $help = 0;
 #__FILE NAME (STRING, NO DEFAULT)
 my $run_dir="";
 my $log_dir="";
-my $h37_REF="";
+my $h38_REF="";
 my $q_name="";
 my $chr_status=0; 
 
@@ -85,7 +87,7 @@ my $status = &GetOptions (
       "srg=i" => \$status_rg,
       "sre=i" => \$status_rerun,
       "rdir=s" => \$run_dir,
-      "ref=s"  => \$h37_REF,
+      "ref=s"  => \$h38_REF,
       "log=s"  => \$log_dir,
 	  "q=s" => \$q_name,
       "help" => \$help,
@@ -145,28 +147,28 @@ my $hold_job_file = "";
 my $bsub_com = "";
 my $sample_full_path = "";
 my $sample_name = "";
-my $h37_REF_bai=$h37_REF.".fai";
+my $h38_REF_bai=$h38_REF.".fai";
 my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
-#my $h37_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
-#my $h37_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
+#my $h38_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
+#my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
+my $f_ref_annot="/gscmnt/gc2518/dinglab/scao/tools/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa";
+my $vepcache="/gscmnt/gc2518/dinglab/scao/tools/vep/v85";
+
+#/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
+#my $h38_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
 my $pindel="/gscuser/scao/tools/pindel/pindel";
-my $samtools="/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin";
 my $PINDEL_DIR="/gscuser/scao/tools/pindel";
 #my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
 my $gatkexe3="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
 #my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk-package-4.0.0.0-local.jar";
 my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk";
 my $picardexe="/gscuser/scao/tools/picard.jar";
+#my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
 my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
+my $vepcmd="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
 
-## reference or database ##
-my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
-my $f_ref_annot="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
-my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
-#my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
-
-my $first_line=`head -n 1 $h37_REF`; 
+my $first_line=`head -n 1 $h38_REF`; 
 
 if($first_line=~/^\>chr/) { $chr_status=1; }
 
@@ -178,7 +180,7 @@ close DH;
 #&check_input_dir($run_dir);
 # start data processsing
 
-if ($step_number < 7) {
+if ($step_number < 8) {
     #begin to process each sample
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
@@ -193,6 +195,7 @@ if ($step_number < 7) {
                    &bsub_varscan();
                    &bsub_pindel();
 				   &bsub_parse_pindel();
+				   &bsub_filter_vcf();
 				   &bsub_merge_vcf();
 				   &bsub_vcf_2_maf();
                    #&bsub_vep();
@@ -206,8 +209,10 @@ if ($step_number < 7) {
                 }elsif ($step_number == 4) {
                     &bsub_parse_pindel(1);
                 }elsif ($step_number == 5) {
+                    &bsub_filter_vcf(1);
+                }elsif ($step_number == 6) {
                     &bsub_merge_vcf(1);
-                }elsif ($step_number==6) {
+                }elsif ($step_number==7) {
 				    &bsub_vcf_2_maf(1);		
 				}
 				}
@@ -215,7 +220,7 @@ if ($step_number < 7) {
 		}
 	}
 
-if($step_number==7 || $step_number==0)
+if($step_number==8 || $step_number==0)
     {
 
     print $yellow, "Submitting jobs for generating the report for the run ....",$normal, "\n";
@@ -348,26 +353,26 @@ sub bsub_gatk{
 	my $chr1=$chr; 
 	if($chr_status==1) { $chr1="chr".$chr; }
     print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
-	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -L $chr1 -O \${rawvcf} -R $h37_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -L $chr1 -O \${rawvcf} -R $h38_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
 	}
-	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
     print GATK "rm \${NBAM_rg}\n";
     print GATK "rm \${NBAM_rg_bai}\n";
 	print GATK "else\n";
 	print GATK "echo \"run gatk4\"","\n";
-#	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
+#	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
 	foreach my $chr (@chrlist)
 	{
 	 my $chr1=$chr;
      if($chr_status==1) { $chr1="chr".$chr; }
      print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
-	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h37_REF -L $chr1 -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h38_REF -L $chr1 -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
 	}
     print GATK "fi\n";
 
 	#print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";
-	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
-	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h37_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
+	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
+	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
     foreach my $chr (@chrlist)
     {
 	#my $chr1=$chr;
@@ -377,8 +382,8 @@ sub bsub_gatk{
     print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.$chr.vcf\n";
     print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.$chr.vcf\n";
 	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";	
- 	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
-	print GATK "$gatkexe4 SelectVariants -R $h37_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
+ 	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
+	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
 	}
 
 	print GATK "     ".$run_script_path."merge_gatk.pl $sample_full_path $sample_name\n"; 
@@ -487,8 +492,8 @@ sub bsub_varscan{
     print VARSCAN "echo \"$IN_bam_N\" > \${BAMLIST}\n";
 	#print VARSCAN "ncols=\$(echo \"3*( \$(wc -l < \$BAMLIST) +1)\"|bc)\n";
  	print VARSCAN "ncols=6\n";
-	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
- 	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h37_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
+	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h38_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
+ 	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h38_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
     close VARSCAN;
     #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #system ( $bsub_com );
@@ -546,8 +551,9 @@ sub bsub_pindel{
     print PINDEL "fi\n";
     #print PINDEL "rm \${CONFIG}\n";
 	print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" > \${CONFIG}\n";
-    print PINDEL "$pindel -T 4 -f $h37_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
-    close PINDEL;
+    #print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
+	print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1\n";
+   	close PINDEL;
    # $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #system ( $bsub_com );
  	my $sh_file=$job_files_dir."/".$current_job_file;
@@ -604,7 +610,7 @@ sub bsub_parse_pindel {
     print PP "cat > \${RUNDIR}/pindel/pindel_filter.input <<EOF\n";
     print PP "pindel.filter.pindel2vcf = $PINDEL_DIR/pindel2vcf\n";
     print PP "pindel.filter.variants_file = \${RUNDIR}/pindel/pindel.out.raw\n";
-    print PP "pindel.filter.REF = $h37_REF\n";
+    print PP "pindel.filter.REF = $h38_REF\n";
     print PP "pindel.filter.date = 000000\n";
     print PP "pindel.filter.heterozyg_min_var_allele_freq = 0.2\n";
     print PP "pindel.filter.homozyg_min_var_allele_freq = 0.8\n";
@@ -639,6 +645,91 @@ sub bsub_parse_pindel {
     }
 
 
+sub bsub_filter_vcf{
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j5_filter_vcf_g.".$sample_name.".sh";
+    my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
+    my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
+
+
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+
+   if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
+    open(FILTER, ">$job_files_dir/$current_job_file") or die $!;
+    print FILTER "#!/bin/bash\n";
+    #print MERGE "#BSUB -n 1\n";
+    ##print MERGE "#BSUB -R \"rusage[mem=30000]\"","\n";
+    #print MERGE "#BSUB -M 30000000\n";
+    #print MERGE "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
+    #print MERGE "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
+    #print MERGE "#BSUB -J $current_job_file\n";
+    #print MERGE "#BSUB -q long\n";
+    #print MERGE "#BSUB -q ding-lab\n"; 
+    #print MERGE "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
+    #print VARSCANP "#BSUB -q long\n";
+    #print MERGE "#BSUB -q research-hpc\n";
+    print FILTER "#BSUB -w \"$hold_job_file\"","\n";
+    print FILTER "RUNDIR=".$sample_full_path."\n";
+    #print VEP "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
+    print FILTER "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
+    print FILTER "export JAVA_HOME=$java_dir\n";
+    print FILTER "export JAVA_OPTS=\"-Xmx10g\"\n";
+    print FILTER "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
+    print FILTER "GATK_snv_VCF="."\${RUNDIR}/gatk/$sample_name.snv.gvip.filtered.vcf\n";
+    print FILTER "GATK_indel_VCF="."\${RUNDIR}/gatk/$sample_name.indel.gvip.filtered.vcf\n";
+    print FILTER "VARSCAN_snv_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.snp.filtered.vcf\n";
+    print FILTER "VARSCAN_indel_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.indel.filtered.vcf\n";
+    print FILTER "PINDEL_VCF="."\${RUNDIR}/pindel/pindel.out.raw.CvgVafStrand_pass.Homopolymer_pass.vcf\n";
+    #print FILTER "MERGER_OUT="."\${RUNDIR}/merged.vcf\n";
+    #print FILTER "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
+    #print FILTER "merged.vep.vcf = ./merged.filtered.vcf\n";
+    #print FILTER "merged.vep.output = ./merged.VEP.vcf\n";
+    #print FILTER "merged.vep.vep_cmd = $vepcmd\n";
+#="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_pre/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
+    #print FILTER "merged.vep.cachedir = $vepcache\n";
+    #print FILTER "merged.vep.reffasta = $f_ref_annot\n";
+    #print FILTER "merged.vep.assembly = GRCh38\n";
+    #print FILTER "EOF\n";
+   # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
+    ### snv 
+    print FILTER "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
+    #print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";
+#-priority gsnp,vsnp,gindel,vindel,pindel\n";
+    #print MERGE "     ".$run_script_path."vaf_filter.pl \${RUNDIR}\n";
+    #print MERGE "cd \${RUNDIR}\n";
+    #print MERGE ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
+    #print MERGE "     ".$run_script_path."vep_annotator.pl ./vep.merged.input >&./vep.merged.log\n";
+    close FILTER;
+    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
+    #$bsub_com = "sh $job_files_dir/$current_job_file\n";
+    #system ($bsub_com);
+
+    my $sh_file=$job_files_dir."/".$current_job_file;
+
+    if($q_name eq "research-hpc")
+    {
+    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
+    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";
+    }
+
+    print $bsub_com;
+	system ($bsub_com);
+}
+
 sub bsub_merge_vcf{
 
     my ($step_by_step) = @_;
@@ -648,7 +739,7 @@ sub bsub_merge_vcf{
         $hold_job_file = $current_job_file;
     }
 
-    $current_job_file = "j5_merge_vcf_g.".$sample_name.".sh";
+    $current_job_file = "j6_merge_vcf_g.".$sample_name.".sh";
     my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 
@@ -692,14 +783,16 @@ sub bsub_merge_vcf{
     print MERGE "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
     print MERGE "merged.vep.vcf = ./merged.filtered.vcf\n";
     print MERGE "merged.vep.output = ./merged.VEP.vcf\n";
-    print MERGE "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
-    print MERGE "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache\n";
-    print MERGE "merged.vep.reffasta = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa\n";
-    print MERGE "merged.vep.assembly = GRCh37\n";
+    print MERGE "merged.vep.vep_cmd = $vepcmd\n";
+#="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_pre/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
+    print MERGE "merged.vep.cachedir = $vepcache\n";
+    print MERGE "merged.vep.reffasta = $f_ref_annot\n";
+    print MERGE "merged.vep.assembly = GRCh38\n";
     print MERGE "EOF\n";
-   # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h37_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
-    print MERGE "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
-	print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h37_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";	
+   # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
+	### snv 
+    #print MERGE "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
+	print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";	
 #-priority gsnp,vsnp,gindel,vindel,pindel\n";
     #print MERGE "     ".$run_script_path."vaf_filter.pl \${RUNDIR}\n";
     #print MERGE "cd \${RUNDIR}\n";
@@ -735,7 +828,7 @@ sub bsub_vcf_2_maf{
     }
 
 
-    $current_job_file = "j6_vcf_2_maf.".$sample_name.".sh";
+    $current_job_file = "j7_vcf_2_maf.".$sample_name.".sh";
     #my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
 
@@ -765,10 +858,11 @@ sub bsub_vcf_2_maf{
     print MAF "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
     print MAF "merged.vep.vcf = ./merged.vcf\n";
     print MAF "merged.vep.output = ./merged.VEP.vcf\n";
-    print MAF "merged.vep.vep_cmd = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
-    print MAF "merged.vep.cachedir = /gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/cache\n";
+    print MAF "merged.vep.vep_cmd = $vepcmd\n";
+#/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
+    print MAF "merged.vep.cachedir = $vepcache\n";
    	print MAF "merged.vep.reffasta = $f_ref_annot\n";
-    print MAF "merged.vep.assembly = GRCh37\n";
+    print MAF "merged.vep.assembly = GRCh38\n";
     print MAF "EOF\n";
 	print MAF "F_VCF_0=".$sample_full_path."/merged.vcf\n";
     print MAF "F_VCF_1=".$sample_full_path."/merged.1.vcf\n";
@@ -796,7 +890,8 @@ sub bsub_vcf_2_maf{
     print MAF "rm \${F_VEP_2}\n";
     print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
     print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
-    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n";
+#    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n";
+  print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot\n";
 	print MAF "fi\n";
 	print MAF "else\n";
     print MAF "     ".$run_script_path."remove_svtype.pl \${F_VCF_0} \${F_VCF_1}\n";
@@ -807,7 +902,9 @@ sub bsub_vcf_2_maf{
     print MAF "rm \${F_VEP_2}\n";
     print MAF "ln -s \${F_VCF_1} \${F_VCF_2}\n";
     print MAF "ln -s \${F_VEP_1} \${F_VEP_2}\n";
-    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n"; 
+#    print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot --filter-vcf $f_exac\n"; 
+	print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot\n";
+
 	print MAF "fi\n";
 	close MAF;
  	my $sh_file=$job_files_dir."/".$current_job_file;
