@@ -1,4 +1,4 @@
-# germlinewrapper #
+# germlinewrapper v1.0 #
 detect germline variants from normal samples, HG19
 
 ## Song Cao ##
