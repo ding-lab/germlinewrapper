@@ -1,4 +1,3 @@
-#  germline_calling_v1.0.pl #
 #  the input bam without readgroup information #	
 ### Song Cao ###
 ### last updated 7/6/2017 ###
@@ -11,7 +10,7 @@ use strict;
 use warnings;
 #use POSIX;
 use Getopt::Long;
-my $version = 1.0;
+my $version = 1.1;
 #color code
 my $red = "\e[31m";
 my $gray = "\e[37m";
