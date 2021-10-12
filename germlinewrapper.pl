@@ -709,15 +709,8 @@ sub bsub_merge_vcf{
     #system ($bsub_com);
  
     my $sh_file=$job_files_dir."/".$current_job_file;
-
-    if($q_name eq "research-hpc")
-    {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";
-    }
-
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
-
     system ($bsub_com);
 
 	}
