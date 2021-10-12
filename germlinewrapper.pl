@@ -1,17 +1,16 @@
-#  germline_calling_v1.0.pl #
 #  the input bam without readgroup information #	
 ### Song Cao ###
 ### last updated 7/6/2017 ###
 ### last updated 10/09/2017 ###
 ### last updated 10/19/2017 ###
 ### updated 1/9/2018 ###
-
+## cp1, 10/2011 ##
 #!/usr/bin/perl
 use strict;
 use warnings;
 #use POSIX;
 use Getopt::Long;
-my $version = 1.0;
+my $version = 1.1;
 #color code
 my $red = "\e[31m";
 my $gray = "\e[37m";
@@ -37,19 +36,16 @@ $normal
 <ref> the human reference: 
 <q> which queue for submitting job; research-hpc, ding-lab, long (default)
 
-with chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa
-without chr: /gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite.fa
-mmy: /gscmnt/gc2737/ding/Reference/hs37d5_plusRibo_plusOncoViruses_plusERCC.20170530.fa 
-hg19: /gscmnt/gc2521/dinglab/cptac3/ref/Homo_sapiens_assembly19.fasta 
+GDC HG38: /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa 
 
 <run_folder> = full path of the folder holding files for this sequence run
 <step_number> run this pipeline step by step. (running the whole pipeline if step number is 0)
 
 $red      	 [1]  Run gatk
-$red         [2]  Run varscan
+$red         	 [2]  Run varscan
 $red 		 [3]  Run pindel
 $yellow 	 [4]  Parse pindel
-$yellow      [5]  filter vcf
+$yellow          [5]  filter vcf
 $purple 	 [6]  Merge calls
 $green 		 [7]  VCF2MAF
 $cyan 		 [8]  Generate final maf
@@ -80,8 +76,9 @@ my $h38_REF="";
 my $q_name="";
 my $chr_status=0; 
 
+my $compute_username="songcao";
+my $group_name="testing";
 
-#__PARSE COMMAND LINE
 my $status = &GetOptions (
       "step=i" => \$step_number,
       "srg=i" => \$status_rg,
@@ -92,8 +89,6 @@ my $status = &GetOptions (
 	  "q=s" => \$q_name,
       "help" => \$help,
     );
-
-#print $status,"\n";
 
 if ($help || $run_dir eq "" || $log_dir eq ""  || $step_number<0 || $step_number>8) {
       print $usage;
@@ -115,31 +110,31 @@ if ($run_dir =~/(.+)\/$/) {
 }
 
 my $email = "scao\@wustl\.edu";
-# everything else below should be automated
 my $HOME = $ENV{HOME};
 my $working_name= (split(/\//,$run_dir))[-2];
 my $HOME1=$log_dir;
-#store job files here
+
+if (! -d $HOME1)
+{
+`mkdir $HOME1`;
+}
+
 if (! -d $HOME1."/tmpgermline") {
     `mkdir $HOME1"/tmpgermline"`;
 }
+
 my $job_files_dir = $HOME1."/tmpgermline";
-#store SGE output and error files here
+
 if (! -d $HOME1."/LSF_DIR_GERMLINE") {
     `mkdir $HOME1"/LSF_DIR_GERMLINE"`;
 }
 my $lsf_file_dir = $HOME1."/LSF_DIR_GERMLINE";
-#GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip
-# obtain script path
-#my $script_dir="/gscuser/scao/scripts/git/germlinewrapper";
-#my $run_script_path=$script_dir;
-#chomp $run_script_path;
+
 my $run_script_path =`echo \$PWD`;
 chomp $run_script_path;
-#my $run_script_path = `dirname $0`;
 my $script_dir=$run_script_path;
 
-$run_script_path = "/gsc/bin/perl ".$run_script_path."/";
+$run_script_path = "/usr/bin/perl ".$run_script_path."/";
 print $run_script_path,"\n";
 my $hold_RM_job = "norm";
 my $current_job_file = "";#cannot be empty
@@ -148,24 +143,19 @@ my $bsub_com = "";
 my $sample_full_path = "";
 my $sample_name = "";
 my $h38_REF_bai=$h38_REF.".fai";
-my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
+my $gatk="/storage1/fs1/songcao/Active/Software/GenomeAnalysis/GenomeAnalysisTK.jar";
+my $samtools="/storage1/fs1/songcao/Active/Software/anaconda3/bin";
+my $varscan="/storage1/fs1/songcao/Active/Software/varscan/2.3.8";
 my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
-#my $h38_REF="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37V1/GRCh37-lite-chr_with_chrM.fa";
-#my $f_exac="/gscmnt/gc2741/ding/qgao/tools/vcf2maf-1.6.11/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz";
 my $f_ref_annot="/gscmnt/gc2518/dinglab/scao/tools/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa";
 my $vepcache="/gscmnt/gc2518/dinglab/scao/tools/vep/v85";
+my $pindel="/storage1/fs1/songcao/Active/Software/anaconda3/bin/pindel";
+my $PINDEL_DIR="/storage1/fs1/songcao/Active/Software/anaconda3/bin";
+my $gatkexe3="/storage1/fs1/songcao/Active/Software/gatk/3.7/GenomeAnalysisTK.jar";
+my $gatkexe4="gatk";
+my $picardexe="/storage1/fs1/songcao/Active/Software/picard/picard.jar";
+my $java_dir="/storage1/fs1/songcao/Active/Software/jre1.8.0_121";
 
-#/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/cache/homo_sapiens/81_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa";
-#my $h38_REF_bai="/gscmnt/gc3027/dinglab/medseq/fasta/GRCh37/GRCh37-lite-chr_with_chrM.fa.fai";
-my $pindel="/gscuser/scao/tools/pindel/pindel";
-my $PINDEL_DIR="/gscuser/scao/tools/pindel";
-#my $gatk="/gscuser/scao/tools/GenomeAnalysisTK.jar";
-my $gatkexe3="/gscmnt/gc2525/dinglab/rmashl/Software/bin/gatk/3.7/GenomeAnalysisTK.jar";
-#my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk-package-4.0.0.0-local.jar";
-my $gatkexe4="/gscuser/scao/tools/gatk-4.0.0.0/gatk";
-my $picardexe="/gscuser/scao/tools/picard.jar";
-#my $f_centromere="/gscmnt/gc3015/dinglab/medseq/Jiayin_Germline_Project/PCGP/data/pindel-centromere-exclude.bed";
-my $java_dir="/gscuser/scao/tools/jre1.8.0_121";
 my $vepcmd="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
 
 my $first_line=`head -n 1 $h38_REF`; 
@@ -176,12 +166,7 @@ opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
 close DH;
 
-# check to make sure the input directory has correct structure
-#&check_input_dir($run_dir);
-# start data processsing
-
 if ($step_number < 8) {
-    #begin to process each sample
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
         if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
@@ -279,9 +264,9 @@ sub bsub_gatk{
     `rm $current_job_file`;
     }
 
-    my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
+    #my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
-	my $IN_bam_N_rg=$sample_full_path."/".$sample_name.".N.rg.bam";
+    my $IN_bam_N_rg=$sample_full_path."/".$sample_name.".N.rg.bam";
     #if (! -e $IN_bam_T) {#make sure there is a input fasta file 
     #    print $red,  "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
     #    print "Warning: Died because there is no input bam file for bwa:\n";
@@ -315,16 +300,11 @@ sub bsub_gatk{
     #print GATK "#BSUB -J $current_job_file\n";
     print GATK "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
     print GATK "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
-  	print GATK "NBAM_rg=".$sample_full_path."/".$sample_name.".N.rg.bam\n";
-	print GATK "NBAM_rg_bai=".$sample_full_path."/".$sample_name.".N.rg.bam.bai\n";
-	print GATK "myRUNDIR=".$sample_full_path."/gatk\n";
-    #print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.vcf\n";
-	#print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.vcf\n";
-	#print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.vcf\n";
-	#print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.vcf\n";
+    print GATK "NBAM_rg=".$sample_full_path."/".$sample_name.".N.rg.bam\n";
+    print GATK "NBAM_rg_bai=".$sample_full_path."/".$sample_name.".N.rg.bam.bai\n";
+    print GATK "myRUNDIR=".$sample_full_path."/gatk\n";
     print GATK "RUNDIR=".$sample_full_path."\n";
-    print GATK "CONFDIR="."/gscmnt/gc2521/dinglab/cptac_prospective_samples/exome/config\n";
-    print GATK "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
+    print GATK "export SAMTOOLS_DIR=$samtools\n";
     print GATK "export JAVA_HOME=$java_dir\n";
     print GATK "export JAVA_OPTS=\"-Xms256m -Xmx512m\"\n";
     print GATK "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
@@ -342,67 +322,50 @@ sub bsub_gatk{
     print GATK "then\n";
     print GATK "rm \${BAMLIST}\n";
     print GATK "fi\n";
-   # print GATK "echo \"$IN_bam_N_rg\" > \${BAMLIST}\n";
     print GATK "if [ $status_rg -eq 0 ]\n";
-	print GATK "then\n";
-	print GATK "java  \${JAVA_OPTS} -jar "."$picardexe AddOrReplaceReadGroups I=\${NBAM} O=\${NBAM_rg} RGID=1 RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=20\n";
-	print GATK "samtools index \${NBAM_rg}\n";
-   # print GATK "else\n";
+    print GATK "then\n";
+    print GATK "java  \${JAVA_OPTS} -jar "."$picardexe AddOrReplaceReadGroups I=\${NBAM} O=\${NBAM_rg} RGID=1 RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=20\n";
+    print GATK "samtools index \${NBAM_rg}\n";
     foreach my $chr (@chrlist)
     {
 	my $chr1=$chr; 
 	if($chr_status==1) { $chr1="chr".$chr; }
-    print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
+    	print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
 	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -L $chr1 -O \${rawvcf} -R $h38_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
 	}
-	#print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"."  -T HaplotypeCaller -I \${NBAM_rg} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
-    print GATK "rm \${NBAM_rg}\n";
-    print GATK "rm \${NBAM_rg_bai}\n";
+        print GATK "rm \${NBAM_rg}\n";
+        print GATK "rm \${NBAM_rg_bai}\n";
 	print GATK "else\n";
 	print GATK "echo \"run gatk4\"","\n";
-#	print GATK "java  \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"."  -T HaplotypeCaller -I \${NBAM} -mbq  10  -rf DuplicateRead  -rf UnmappedRead  -stand_call_conf 10.0  -o  \${rawvcf}\n";
 	foreach my $chr (@chrlist)
 	{
 	 my $chr1=$chr;
-     if($chr_status==1) { $chr1="chr".$chr; }
-     print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
-	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h38_REF -L $chr1 -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
+         if($chr_status==1) { $chr1="chr".$chr; }
+         print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
+	 print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h38_REF -L $chr1 -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
 	}
-    print GATK "fi\n";
+    	print GATK "fi\n";
 
-	#print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";
-	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"." -T SelectVariants  -V  \${gvipvcf}  -o  \${snvvcf}  -selectType SNP -selectType MNP"."\n";
-	#print GATK "java \${JAVA_OPTS} -jar "."$gatkexe3 -R $h38_REF"." -T SelectVariants  -V  \${gvipvcf}   -o  \${indelvcf}  -selectType INDEL"."\n";
-    foreach my $chr (@chrlist)
-    {
-	#my $chr1=$chr;
-    #if($chr_status==1) { $chr1="chr".$chr; }
-    print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
-    print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.$chr.vcf\n";
-    print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.$chr.vcf\n";
-    print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.$chr.vcf\n";
+    	foreach my $chr (@chrlist)
+    	{
+    	print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
+    	print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.$chr.vcf\n";
+    	print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.$chr.vcf\n";
+    	print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.$chr.vcf\n";
 	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";	
  	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
 	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
 	}
 
 	print GATK "     ".$run_script_path."merge_gatk.pl $sample_full_path $sample_name\n"; 
-	#print GATK "fi\n";
 	close GATK;
-    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
-    #system ( $bsub_com );
 
  	my $sh_file=$job_files_dir."/".$current_job_file;
 	
-    if($q_name eq "research-hpc")
-    {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
-    else 
-	{        
-	$bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";
-    }
 
-system ( $bsub_com );
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(broadinstitute/gatk)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system ($bsub_com);
 
 	}
 
@@ -463,15 +426,13 @@ sub bsub_varscan{
     print VARSCAN "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
     print VARSCAN "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
     print VARSCAN "myRUNDIR=".$sample_full_path."/varscan\n";
-	print VARSCAN "outsnp=".$sample_full_path."/varscan/".$sample_name."raw.snp.vcf\n";
-	print VARSCAN "logsnp=".$sample_full_path."/varscan/".$sample_name."raw.snp.log\n";
+    print VARSCAN "outsnp=".$sample_full_path."/varscan/".$sample_name."raw.snp.vcf\n";
+    print VARSCAN "logsnp=".$sample_full_path."/varscan/".$sample_name."raw.snp.log\n";
     print VARSCAN "outindel=".$sample_full_path."/varscan/".$sample_name."raw.indel.vcf\n";
     print VARSCAN "logindel=".$sample_full_path."/varscan/".$sample_name."raw.indel.log\n";
     print VARSCAN "RUNDIR=".$sample_full_path."\n";
-    print VARSCAN "CONFDIR="."/gscmnt/gc2521/dinglab/cptac_prospective_samples/exome/config\n";
-    print VARSCAN "GENOMEVIP_SCRIPTS=/gscmnt/gc2525/dinglab/rmashl/Software/bin/genomevip\n";
-    print VARSCAN "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
-    print VARSCAN "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
+    print VARSCAN "export VARSCAN_DIR=$varscan\n";
+    print VARSCAN "export SAMTOOLS_DIR=$samtools\n";
     print VARSCAN "export JAVA_HOME=$java_dir\n";
     print VARSCAN "export JAVA_OPTS=\"-Xms256m -Xmx512m\"\n";
     print VARSCAN "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
@@ -490,27 +451,17 @@ sub bsub_varscan{
     print VARSCAN "rm \${BAMLIST}\n";
     print VARSCAN "fi\n";
     print VARSCAN "echo \"$IN_bam_N\" > \${BAMLIST}\n";
-	#print VARSCAN "ncols=\$(echo \"3*( \$(wc -l < \$BAMLIST) +1)\"|bc)\n";
- 	print VARSCAN "ncols=6\n";
-	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h38_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
- 	print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h38_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
+    print VARSCAN "ncols=6\n";
+    print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h38_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2snp  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.08   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outsnp}  2> \${logsnp}\n";   
+    print VARSCAN "\${SAMTOOLS_DIR}/samtools mpileup -q 1 -Q 13 -B -f $h38_REF -b \${BAMLIST} | awk -v ncols=\$ncols \'NF==ncols\' | java \${JAVA_OPTS} -jar \${VARSCAN_DIR}/VarScan.jar mpileup2indel  -  --p-value  0.10   --min-coverage  3   --min-var-freq  0.20   --min-reads2  2   --min-avg-qual  15   --min-freq-for-hom  0.75   --strand-filter  1   --output-vcf  1   > \${outindel}  2> \${logindel}\n";
     close VARSCAN;
-    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
-    #system ( $bsub_com );
 
     my $sh_file=$job_files_dir."/".$current_job_file;
-    #$bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -o $lsf_out -e $lsf_err bash $sh_file\n";     
-	#print $bsub_com;
-    #system ($bsub_com);
 
-    if($q_name eq "research-hpc")
-    {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";
-    }
-
-	    print $bsub_com;
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
     system ($bsub_com);
+
 }
 
 sub bsub_pindel{
@@ -534,13 +485,6 @@ sub bsub_pindel{
     my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
     open(PINDEL, ">$job_files_dir/$current_job_file") or die $!;
     print PINDEL "#!/bin/bash\n";
-    #print PINDEL "#BSUB -n 4\n";
-    #print PINDEL "#BSUB -R \"span[hosts=1] rusage[mem=30000]\"","\n";
-    #print PINDEL "#BSUB -M 30000000\n";
-    #print PINDEL "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    #print PINDEL "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    #print PINDEL "#BSUB -J $current_job_file\n";
-    #print PINDEL "#BSUB -w \"$hold_job_file\"","\n";
     print PINDEL "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
     print PINDEL "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
     print PINDEL "myRUNDIR=".$sample_full_path."/pindel\n";
@@ -549,22 +493,15 @@ sub bsub_pindel{
     print PINDEL "then\n";
     print PINDEL "mkdir \${myRUNDIR}\n";
     print PINDEL "fi\n";
-    #print PINDEL "rm \${CONFIG}\n";
-	print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" > \${CONFIG}\n";
-    #print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1 -J $f_centromere\n";
-	print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1\n";
-   	close PINDEL;
-   # $bsub_com = "bsub < $job_files_dir/$current_job_file\n";
-    #system ( $bsub_com );
- 	my $sh_file=$job_files_dir."/".$current_job_file;
+    print PINDEL "echo \"$IN_bam_N\t500\t$sample_name.N\" > \${CONFIG}\n";
+    print PINDEL "$pindel -T 4 -f $h38_REF -i \${CONFIG} -o \${myRUNDIR}"."/$sample_name"." -m 6 -w 1\n";
+    close PINDEL;
+    my $sh_file=$job_files_dir."/".$current_job_file;
 
-    if($q_name eq "research-hpc")
-    {
-    $bsub_com = "bsub -q research-hpc -n 4 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 4 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";   }
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 4 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+
     print $bsub_com;
     system ($bsub_com);
-
     
     }
 
@@ -631,17 +568,11 @@ sub bsub_parse_pindel {
     print PP 'cat $list | grep ChrID > ./$pin_var_file'."\n";
     print PP "     ".$run_script_path."pindel_filter.v0.5.pl ./pindel_filter.input\n";
     close PP;
-    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";		
-    #system ($bsub_com);
 
- 	my $sh_file=$job_files_dir."/".$current_job_file;
-    if($q_name eq "research-hpc")
-    {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";   }
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
-
     }
 
 
@@ -685,7 +616,7 @@ sub bsub_filter_vcf{
     print FILTER "#BSUB -w \"$hold_job_file\"","\n";
     print FILTER "RUNDIR=".$sample_full_path."\n";
     #print VEP "export VARSCAN_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/varscan/2.3.8\n";
-    print FILTER "export SAMTOOLS_DIR=/gscmnt/gc2525/dinglab/rmashl/Software/bin/samtools/1.2/bin\n";
+    print FILTER "export SAMTOOLS_DIR=$samtools\n";
     print FILTER "export JAVA_HOME=$java_dir\n";
     print FILTER "export JAVA_OPTS=\"-Xmx10g\"\n";
     print FILTER "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
@@ -694,40 +625,14 @@ sub bsub_filter_vcf{
     print FILTER "VARSCAN_snv_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.snp.filtered.vcf\n";
     print FILTER "VARSCAN_indel_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.indel.filtered.vcf\n";
     print FILTER "PINDEL_VCF="."\${RUNDIR}/pindel/pindel.out.raw.CvgVafStrand_pass.Homopolymer_pass.vcf\n";
-    #print FILTER "MERGER_OUT="."\${RUNDIR}/merged.vcf\n";
-    #print FILTER "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
-    #print FILTER "merged.vep.vcf = ./merged.filtered.vcf\n";
-    #print FILTER "merged.vep.output = ./merged.VEP.vcf\n";
-    #print FILTER "merged.vep.vep_cmd = $vepcmd\n";
-#="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_pre/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v81/ensembl-tools-release-81/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
-    #print FILTER "merged.vep.cachedir = $vepcache\n";
-    #print FILTER "merged.vep.reffasta = $f_ref_annot\n";
-    #print FILTER "merged.vep.assembly = GRCh38\n";
-    #print FILTER "EOF\n";
-   # print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions UNIQUIFY\n"; 
-    ### snv 
     print FILTER "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
-    #print MERGE "java \${JAVA_OPTS} -jar $gatk -R $h38_REF -T CombineVariants -o \${MERGER_OUT} --variant:gsnp \${GATK_snv_VCF} --variant:gindel \${GATK_indel_VCF} --variant:vsnp \${VARSCAN_snv_VCF} --variant:vindel \${VARSCAN_indel_VCF} --variant:pindel \${PINDEL_VCF} -genotypeMergeOptions PRIORITIZE -priority gsnp,vsnp,gindel,vindel,pindel\n";
-#-priority gsnp,vsnp,gindel,vindel,pindel\n";
-    #print MERGE "     ".$run_script_path."vaf_filter.pl \${RUNDIR}\n";
-    #print MERGE "cd \${RUNDIR}\n";
-    #print MERGE ". /gscmnt/gc2525/dinglab/rmashl/Software/perl/set_envvars\n";
-    #print MERGE "     ".$run_script_path."vep_annotator.pl ./vep.merged.input >&./vep.merged.log\n";
     close FILTER;
-    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
-    #$bsub_com = "sh $job_files_dir/$current_job_file\n";
-    #system ($bsub_com);
+
 
     my $sh_file=$job_files_dir."/".$current_job_file;
-
-    if($q_name eq "research-hpc")
-    {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";
-    }
-
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
-	system ($bsub_com);
+    system ($bsub_com);
 }
 
 sub bsub_merge_vcf{
