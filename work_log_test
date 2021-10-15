@@ -13,3 +13,14 @@ perl germlinewrapper.pl --rdir /storage1/fs1/songcao/Active/Project/CPTAC/germli
 
 ### step 5 ###
 perl germlinewrapper.pl --rdir /storage1/fs1/songcao/Active/Project/CPTAC/germline --log /storage1/fs1/songcao/Active/Project/CPTAC/germline.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --step 5 --q dinglab
+
+### step 6 ###
+perl germlinewrapper.pl --rdir /storage1/fs1/songcao/Active/Project/CPTAC/germline --log /storage1/fs1/songcao/Active/Project/CPTAC/germline.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --step 6 --q dinglab
+
+
+### step 7 ###
+perl germlinewrapper.pl --rdir /storage1/fs1/songcao/Active/Project/CPTAC/germline --log /storage1/fs1/songcao/Active/Project/CPTAC/germline.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --step 7 --q dinglab --sre 1
+
+
+### step 8 ###
+perl germlinewrapper.pl --rdir /storage1/fs1/songcao/Active/Project/CPTAC/germline --log /storage1/fs1/songcao/Active/Project/CPTAC/germline.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --step 8 --q dinglab --sre 1

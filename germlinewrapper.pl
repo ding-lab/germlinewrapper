@@ -144,11 +144,11 @@ my $sample_full_path = "";
 my $sample_name = "";
 my $h38_REF_bai=$h38_REF.".fai";
 my $gatk="/storage1/fs1/songcao/Active/Software/GenomeAnalysis/GenomeAnalysisTK.jar";
-my $samtools="/storage1/fs1/songcao/Active/Software/anaconda3/bin";
-my $varscan="/storage1/fs1/songcao/Active/Software/varscan/2.3.8";
-my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
-my $f_ref_annot="/gscmnt/gc2518/dinglab/scao/tools/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa";
-my $vepcache="/gscmnt/gc2518/dinglab/scao/tools/vep/v85";
+my $samtools="/storage1/fs1/songcao/Active/Software/samtools/1.2/bin";
+my $varscan="/storage1/fs1/songcao/Active/Software/varscan/2.3.8.ndown";
+#my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
+my $f_ref_annot="/storage1/fs1/songcao/Active/Database/hg38_database/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa";
+my $vepcache="/storage1/fs1/songcao/Active/Database/hg38_database/vep/v85";
 my $pindel="/storage1/fs1/songcao/Active/Software/anaconda3/bin/pindel";
 my $PINDEL_DIR="/storage1/fs1/songcao/Active/Software/anaconda3/bin";
 my $gatkexe3="/storage1/fs1/songcao/Active/Software/gatk/3.7/GenomeAnalysisTK.jar";
@@ -156,7 +156,7 @@ my $gatkexe4="gatk";
 my $picardexe="/storage1/fs1/songcao/Active/Software/picard/picard.jar";
 my $java_dir="/storage1/fs1/songcao/Active/Software/jre1.8.0_121";
 
-my $vepcmd="/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
+my $vepcmd="/storage1/fs1/songcao/Active/Database/hg38_database/vep/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
 
 my $first_line=`head -n 1 $h38_REF`; 
 
@@ -239,12 +239,9 @@ if($step_number==8 || $step_number==0)
     #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #system ($bsub_com);
 
- 	my $sh_file=$job_files_dir."/".$current_job_file;
 
-    if($q_name eq "research-hpc")
-    {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";   }
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
 
@@ -709,7 +706,7 @@ sub bsub_merge_vcf{
     #system ($bsub_com);
  
     my $sh_file=$job_files_dir."/".$current_job_file;
-    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>10000] rusage[mem=10000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
 
@@ -805,11 +802,9 @@ sub bsub_vcf_2_maf{
 
 	print MAF "fi\n";
 	close MAF;
- 	my $sh_file=$job_files_dir."/".$current_job_file;
-    if($q_name eq "research-hpc")
-    {
-    $bsub_com = "bsub -q research-hpc -n 1 -R \"select[mem>40000] rusage[mem=40000]\" -M 40000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";     }
-    else {        $bsub_com = "bsub -q $q_name -n 1 -R \"select[mem>40000] rusage[mem=40000]\" -M 40000000 -w \"$hold_job_file\" -o $lsf_out -e $lsf_err bash $sh_file\n";   }
+
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
 
