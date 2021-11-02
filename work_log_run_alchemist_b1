@@ -1,0 +1,7 @@
+
+### step 1 ###
+perl germlinewrapper.pl --rdir  /storage1/fs1/songcao/Active/Project/GDAN/Alchemist/germline/b1 --log /storage1/fs1/songcao/Active/Project/GDAN/Alchemist/germline/b1.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 1 
+#
+### step 2 ###
+perl germlinewrapper.pl --rdir  /storage1/fs1/songcao/Active/Project/GDAN/Alchemist/germline/b1 --log /storage1/fs1/songcao/Active/Project/GDAN/Alchemist/germline/b1.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 12
+

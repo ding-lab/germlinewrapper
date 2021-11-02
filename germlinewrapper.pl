@@ -24,12 +24,14 @@ my $normal = "\e[0m";
 (my $usage = <<OUT) =~ s/\t+//g;
 This script will process germline callings. 
 Pipeline version: $version
-$yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log --q
+$yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --q
 
 $normal
 
 <rdir> = full path of the folder holding files for this sequence run (user must provide)
 <srg> = bam having read group or not: 1, yes and 0, no (default 1)
+<groupname> = job group name
+<users> = user name for job group
 <log> = full path of the folder for saving log file; usually upper folder of rdir 
 <sre> = re-run: 1, yes and 0, no  (default 0)
 <step> run this pipeline step by step. (user must provide)
@@ -76,21 +78,26 @@ my $h38_REF="";
 my $q_name="";
 my $chr_status=0; 
 
-my $compute_username="songcao";
-my $group_name="testing";
+my $compute_username="";
+my $group_name="";
 
 my $status = &GetOptions (
       "step=i" => \$step_number,
       "srg=i" => \$status_rg,
       "sre=i" => \$status_rerun,
       "rdir=s" => \$run_dir,
+      "groupname=s" => \$group_name,
+      "users=s" => \$compute_username,
       "ref=s"  => \$h38_REF,
       "log=s"  => \$log_dir,
-	  "q=s" => \$q_name,
+      "q=s" => \$q_name,
       "help" => \$help,
     );
 
-if ($help || $run_dir eq "" || $log_dir eq ""  || $step_number<0 || $step_number>8) {
+print $group_name,"\n"; 
+print $compute_username, "\n"; 
+
+if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>8) {
       print $usage;
       exit;
    }
@@ -100,6 +107,9 @@ print "step num=",$step_number,"\n";
 print "status rerun=",$status_rerun,"\n";
 print "status readgroup=",$status_rg,"\n";
 print "queue name=",$q_name,"\n";
+print "job group=",$group_name,"\n";
+print "user group=",$compute_username,"\n";
+
 if($q_name eq "")
 {
     $q_name="long";
@@ -182,7 +192,7 @@ if ($step_number < 8) {
 				   &bsub_parse_pindel();
 				   &bsub_filter_vcf();
 				   &bsub_merge_vcf();
-				   &bsub_vcf_2_maf();
+		 	   &bsub_vcf_2_maf();
                    #&bsub_vep();
                 }
                  elsif ($step_number == 1) {
@@ -511,6 +521,7 @@ sub bsub_parse_pindel {
         $hold_job_file = $current_job_file;
     }
 
+    $current_job_file = "j4_parse_pindel_g_".$sample_name.".sh";
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
     if(-e $lsf_out)
@@ -520,7 +531,6 @@ sub bsub_parse_pindel {
     `rm $current_job_file`;
     }
 
-    $current_job_file = "j4_parse_pindel_g_".$sample_name.".sh";
 
     #my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     #my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
