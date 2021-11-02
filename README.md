@@ -14,18 +14,25 @@ GermineWrapper pipeline is a fully automated and modular software package design
 Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --q
 
 rdir = full path of the folder holding files for this sequence run (user must provide)
+
 srg = bam having read group or not: 1, yes and 0, no (default 1)
+
 groupname = job group name
+
 users = user name for job group
+
 log = full path of the folder for saving log file; usually upper folder of rdir 
+
 sre = re-run: 1, yes and 0, no  (default 0)
+
 step run this pipeline step by step. (user must provide)
-ref the human reference: 
+
+ref the human reference: GDC HG38: /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa
+
 q which queue for submitting job; research-hpc, ding-lab, long (default)
 
-GDC HG38: /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa 
-
 run_folder = full path of the folder holding files for this sequence run
+
 step_number run this pipeline step by step. (running the whole pipeline if step number is 0)
 
 [1]  Run gatk
