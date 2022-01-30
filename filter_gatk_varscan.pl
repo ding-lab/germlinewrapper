@@ -190,9 +190,11 @@ while(<INV>)
 
 	#<STDIN>;
 
-	## remove M allele ##
+	## remove M,R,W,Y allele ##
 	if($refvar=~/M/) { next; }
 	if($refvar=~/R/) { next; }
+	if($refvar=~/W/) { next; }
+    if($refvar=~/Y/) { next; }
 
 	### coverage and vaf cut-off ##
 	
@@ -230,6 +232,8 @@ while(<ING>)
 	## remove M allel ##
   	if($refvar=~/M/) { next; }
 	if($refvar=~/R/) { next; }
+    if($refvar=~/W/) { next; }
+    if($refvar=~/Y/) { next; }
 
     if($desc=~/AD/) 
 	{
@@ -272,6 +276,9 @@ while(<INSV>)
     my $n_var_rev=(split(":",$infor))[-1];    
     if($refvar=~/M/) { next; }
     if($refvar=~/R/) { next; }
+    if($refvar=~/W/) { next; }
+    if($refvar=~/Y/) { next; }
+
 	#print $line,"\n";
     #print $n_ref_fw,"\n"; 
     #print $n_ref_rev,"\n";
@@ -309,6 +316,8 @@ while(<INSG>)
 	## remove M allele ##
   	if($refvar=~/M/) { next; }
 	if($refvar=~/R/) { next; }
+    if($refvar=~/W/) { next; }
+    if($refvar=~/Y/) { next; }
 
 	if($desc=~/AD/) 
 	{
