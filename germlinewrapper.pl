@@ -312,18 +312,18 @@ sub bsub_gatk{
     print GATK "myRUNDIR=".$sample_full_path."/gatk\n";
     print GATK "RUNDIR=".$sample_full_path."\n";
     print GATK "export SAMTOOLS_DIR=$samtools\n";
-    print GATK "export JAVA_HOME=$java_dir\n";
+    #print GATK "export JAVA_HOME=$java_dir\n";
     print GATK "export JAVA_OPTS=\"-Xms256m -Xmx512m\"\n";
-    print GATK "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
+    #print GATK "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
     print GATK "if [ ! -d \${myRUNDIR} ]\n";
     print GATK "then\n";
     print GATK "mkdir \${myRUNDIR}\n";
     print GATK "fi\n";
-    print GATK "if \[\[ -z \"\$LD_LIBRARY_PATH\" \]\] \; then\n";
-    print GATK "export LD_LIBRARY_PATH=\${JAVA_HOME}/lib\n";
-    print GATK "else\n";
-    print GATK "export LD_LIBRARY_PATH=\${JAVA_HOME}/lib:\${LD_LIBRARY_PATH}\n";
-    print GATK "fi\n";
+   # print GATK "if \[\[ -z \"\$LD_LIBRARY_PATH\" \]\] \; then\n";
+   # print GATK "export LD_LIBRARY_PATH=\${JAVA_HOME}/lib\n";
+   # print GATK "else\n";
+   # print GATK "export LD_LIBRARY_PATH=\${JAVA_HOME}/lib:\${LD_LIBRARY_PATH}\n";
+   # print GATK "fi\n";
     print GATK "BAMLIST=\${RUNDIR}/gatk/bamfilelist.inp\n";
     print GATK "if [ ! -e \${BAMLIST} ]\n";
     print GATK "then\n";
@@ -340,20 +340,20 @@ sub bsub_gatk{
     	print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
 	print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM_rg} -L $chr1 -O \${rawvcf} -R $h38_REF -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
 	}
-        print GATK "rm \${NBAM_rg}\n";
-        print GATK "rm \${NBAM_rg_bai}\n";
-	print GATK "else\n";
-	print GATK "echo \"run gatk4\"","\n";
-	foreach my $chr (@chrlist)
+    print GATK "rm \${NBAM_rg}\n";
+    print GATK "rm \${NBAM_rg_bai}\n"; 
+    print GATK "else\n";
+    print GATK "echo \"run gatk4\"","\n";
+    foreach my $chr (@chrlist)
 	{
 	 my $chr1=$chr;
          if($chr_status==1) { $chr1="chr".$chr; }
          print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
 	 print GATK "$gatkexe4 HaplotypeCaller  -I \${NBAM} -O \${rawvcf} -R $h38_REF -L $chr1 -RF NotDuplicateReadFilter -RF MappingQualityReadFilter -RF MappedReadFilter\n";
 	}
-    	print GATK "fi\n";
+    print GATK "fi\n";
 
-    	foreach my $chr (@chrlist)
+    foreach my $chr (@chrlist)
     	{
     	print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
     	print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.$chr.vcf\n";
@@ -364,17 +364,17 @@ sub bsub_gatk{
 	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
 	}
 
-	print GATK "     ".$run_script_path."merge_gatk.pl $sample_full_path $sample_name\n"; 
-	close GATK;
+    print GATK "     ".$run_script_path."merge_gatk.pl $sample_full_path $sample_name\n"; 
+    close GATK;
 
- 	my $sh_file=$job_files_dir."/".$current_job_file;
+    my $sh_file=$job_files_dir."/".$current_job_file;
 	
 
     $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(broadinstitute/gatk)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
 
-	}
+}
 
 sub bsub_varscan{
 
