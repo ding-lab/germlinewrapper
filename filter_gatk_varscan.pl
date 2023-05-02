@@ -6,11 +6,11 @@
 
 use strict;
 use warnings;
-die unless @ARGV == 2;
+die unless @ARGV == 3;
 
-## minmum vaf cut off for germline 0.2 ##
+## minmum vaf cut off for germline min_vaf ##
 
-my ($run_dir,$sample_name)=@ARGV;
+my ($run_dir,$vcf_cutoff,$sample_name)=@ARGV;
 
 my $pindel_vcf=$run_dir."/pindel/pindel.out.raw.CvgVafStrand_pass.Homopolymer_pass.vcf"; 
 my $gatk_vcf=$run_dir."/gatk/".$sample_name.".indel.gvip.vcf";
@@ -23,7 +23,7 @@ my $vars_snv_vcf=$run_dir."/varscan/".$sample_name."raw.snp.vcf";
 my $gatk_snv_vcf_filter=$run_dir."/gatk/".$sample_name.".snv.gvip.filtered.vcf";
 my $vars_snv_vcf_filter=$run_dir."/varscan/".$sample_name."raw.snp.filtered.vcf";
 
-my $vcf_cutoff=0.2; 
+#my $vcf_cutoff=0.2; 
 my $min_coverage=10; 
  
 my %pindelvcf=();

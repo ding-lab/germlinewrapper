@@ -1,3 +1,19 @@
 
 ### step 1 ###
-perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q dinglab --step 1 
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q dinglab --step 1
+
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 2
+
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 3
+
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --minvaf 0.05 --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 4
+
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --minvaf 0.05 --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 5
+
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --minvaf 0.05 --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 6
+
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --minvaf 0.05 --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 7 --sre 1
+
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --minvaf 0.05 --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 8
+
+perl germlinewrapper.pl --rdir /scratch1/fs1/dinglab/scao/gw/cptacaml/b1 --log /scratch1/fs1/dinglab/scao/gw/cptacaml/b1.log --minvaf 0.05 --ref /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --users songcao --groupname GermlineWXS --q general --step 9 

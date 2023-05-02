@@ -90,6 +90,8 @@ if ($paras{'apply_filter'} eq "true"  &&  $paras{'mode'} ne "pooled") {
 
     # Germline filtering options:
     # minimum coverage, VAF threshold, reads are considered balanced as long as there is nonzero read support in both directions
+print $paras{'mode'},"\t",$paras{'min_var_allele_freq'},"\n";
+
     if ($paras{'mode'} eq "germline") {
 	while (<$input_fh>) {
 	    chomp; 

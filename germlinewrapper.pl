@@ -24,7 +24,10 @@ my $normal = "\e[0m";
 (my $usage = <<OUT) =~ s/\t+//g;
 This script will process germline callings. 
 Pipeline version: $version
-$yellow     Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --q
+
+$yellow 
+
+Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --minvaf --q
 
 $normal
 
@@ -34,6 +37,7 @@ $normal
 <users> = user name for job group
 <log> = full path of the folder for saving log file; usually upper folder of rdir 
 <sre> = re-run: 1, yes and 0, no  (default 0)
+<minvaf> = minvaf for germline variant, and default 0.2
 <step> run this pipeline step by step. (user must provide)
 <ref> the human reference: 
 <q> which queue for submitting job; research-hpc, ding-lab, long (default)
@@ -43,15 +47,16 @@ GDC HG38: /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh
 <run_folder> = full path of the folder holding files for this sequence run
 <step_number> run this pipeline step by step. (running the whole pipeline if step number is 0)
 
-$red      	 [1]  Run gatk
-$red         	 [2]  Run varscan
-$red 		 [3]  Run pindel
-$yellow 	 [4]  Parse pindel
-$yellow          [5]  filter vcf
-$purple 	 [6]  Merge calls
-$green 		 [7]  VCF2MAF
-$cyan 		 [8]  Generate final maf
-
+$red [1]  Run gatk
+$red [2]  Run varscan
+$red [3]  Run pindel
+$yellow [4]  Parse pindel
+$yellow [5]  filter vcf
+$purple [6]  Merge calls
+$green [7]  VCF2MAF
+$cyan [8]  Generate final maf
+$cyan [9]  Do bam readcount
+$cyan [10] add readcount to maf file
 $normal
 OUT
 
@@ -77,14 +82,15 @@ my $log_dir="";
 my $h38_REF="";
 my $q_name="";
 my $chr_status=0; 
-
 my $compute_username="";
 my $group_name="";
+my $min_vaf=0.2;
 
 my $status = &GetOptions (
       "step=i" => \$step_number,
       "srg=i" => \$status_rg,
       "sre=i" => \$status_rerun,
+      "minvaf=f"  => \$min_vaf,
       "rdir=s" => \$run_dir,
       "groupname=s" => \$group_name,
       "users=s" => \$compute_username,
@@ -94,10 +100,11 @@ my $status = &GetOptions (
       "help" => \$help,
     );
 
+print "minvaf=",$min_vaf,"\n";
 print $group_name,"\n"; 
 print $compute_username, "\n"; 
 
-if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>8) {
+if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>10) {
       print $usage;
       exit;
    }
@@ -121,8 +128,9 @@ if ($run_dir =~/(.+)\/$/) {
 
 my $email = "scao\@wustl\.edu";
 my $HOME = $ENV{HOME};
-my $working_name= (split(/\//,$run_dir))[-2];
+my $working_name= (split(/\//,$run_dir))[-1];
 my $HOME1=$log_dir;
+
 
 if (! -d $HOME1)
 {
@@ -153,6 +161,7 @@ my $bsub_com = "";
 my $sample_full_path = "";
 my $sample_name = "";
 my $h38_REF_bai=$h38_REF.".fai";
+my $bamrc="/storage1/fs1/songcao/Active/Software/bam-readcount/0.7.4/bam-readcount";
 my $gatk="/storage1/fs1/songcao/Active/Software/GenomeAnalysis/GenomeAnalysisTK.jar";
 my $samtools="/storage1/fs1/songcao/Active/Software/samtools/1.2/bin";
 my $varscan="/storage1/fs1/songcao/Active/Software/varscan/2.3.8.ndown";
@@ -176,7 +185,7 @@ opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
 close DH;
 
-if ($step_number < 8) {
+if ($step_number < 8  || $step_number == 9) {
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
         if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
@@ -189,10 +198,10 @@ if ($step_number < 8) {
                    &bsub_gatk();
                    &bsub_varscan();
                    &bsub_pindel();
-				   &bsub_parse_pindel();
-				   &bsub_filter_vcf();
-				   &bsub_merge_vcf();
-		 	   &bsub_vcf_2_maf();
+		   &bsub_parse_pindel();
+		   &bsub_filter_vcf();
+	           &bsub_merge_vcf();
+		   &bsub_vcf_2_maf();
                    #&bsub_vep();
                 }
                  elsif ($step_number == 1) {
@@ -209,26 +218,28 @@ if ($step_number < 8) {
                     &bsub_merge_vcf(1);
                 }elsif ($step_number==7) {
 				    &bsub_vcf_2_maf(1);		
-				}
-				}
-				}
+		}elsif ($step_number==9) {
+                                    &bsub_rc(1);
+                }
+		}
+		}
 		}
 	}
 
-if($step_number==8 || $step_number==0)
+if($step_number==8)
     {
 
     print $yellow, "Submitting jobs for generating the report for the run ....",$normal, "\n";
     $hold_job_file=$current_job_file;
-    $current_job_file = "Run_report_gl_".$working_name.".sh";
+    $current_job_file = "j8_Run_report_gl_".$working_name.".sh";
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
 
     if(-e $lsf_out) 
 	{
 	`rm $lsf_out`;
-    `rm $lsf_err`;
-    `rm $current_job_file`;
+    	`rm $lsf_err`;
+    	`rm $current_job_file`;
 	}
 
     open(REPRUN, ">$job_files_dir/$current_job_file") or die $!;
@@ -244,18 +255,50 @@ if($step_number==8 || $step_number==0)
     #print REPRUN "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
     #print REPRUN "#BSUB -J $current_job_file\n";
     #print REPRUN "#BSUB -w \"$hold_job_file\"","\n";
+    print REPRUN "MAF=".$run_dir."/".$working_name.".maf\n";
     print REPRUN "      ".$run_script_path."generate_final_report.pl ".$run_dir."\n";
+    print REPRUN "      ".$run_script_path."split_maf_bysample.pl \${MAF} ".$run_dir."\n";
     close REPRUN;
+
     #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
     #system ($bsub_com);
-
-
+    
     my $sh_file=$job_files_dir."/".$current_job_file;
     $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
 
 }
+
+if($step_number==10)
+    {
+
+    print $yellow, "Submitting jobs for generating the report for the run ....",$normal, "\n";
+    $hold_job_file=$current_job_file;
+    $current_job_file = "j10_Run_addrc_".$working_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+
+    if(-e $lsf_out)
+        {
+        `rm $lsf_out`;
+        `rm $lsf_err`;
+        `rm $current_job_file`;
+        }
+
+    my $f_maf=$run_dir."/".$working_name.".maf";
+    my $f_maf_rc=$f_maf.".rc";
+
+    open(ADDRC, ">$job_files_dir/$current_job_file") or die $!;
+    print ADDRC "      ".$run_script_path."add_rc.pl ".$run_dir." ".$f_maf." ".$f_maf_rc."\n";
+    close ADDRC;
+
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system ($bsub_com);
+}
+
 sub bsub_gatk{
     #my $cdhitReport = $sample_full_path."/".$sample_name.".fa.cdhitReport";
 
@@ -355,13 +398,13 @@ sub bsub_gatk{
 
     foreach my $chr (@chrlist)
     	{
-    	print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
-    	print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.$chr.vcf\n";
-    	print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.$chr.vcf\n";
-    	print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.$chr.vcf\n";
-	print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";	
- 	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
-	print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
+    	 print GATK "rawvcf=".$sample_full_path."/gatk/".$sample_name.".raw.$chr.vcf\n";
+    	 print GATK "gvipvcf=".$sample_full_path."/gatk/".$sample_name.".gvip.$chr.vcf\n";
+    	 print GATK "snvvcf=".$sample_full_path."/gatk/".$sample_name.".snv.gvip.$chr.vcf\n";
+    	 print GATK "indelvcf=".$sample_full_path."/gatk/".$sample_name.".indel.gvip.$chr.vcf\n";
+	 print GATK "     ".$run_script_path."genomevip_label.pl GATK \${rawvcf} \${gvipvcf}"."\n";	
+ 	 print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${snvvcf}  -select-type SNP -select-type MNP"."\n";    
+	 print GATK "$gatkexe4 SelectVariants -R $h38_REF -V  \${gvipvcf}  -O  \${indelvcf}  -select-type INDEL"."\n";
 	}
 
     print GATK "     ".$run_script_path."merge_gatk.pl $sample_full_path $sample_name\n"; 
@@ -561,7 +604,7 @@ sub bsub_parse_pindel {
     print PP "pindel.filter.mode = germline\n";
     print PP "pindel.filter.apply_filter = true\n";
     print PP "pindel.filter.germline.min_coverages = 10\n";
-    print PP "pindel.filter.germline.min_var_allele_freq = 0.20\n";
+    print PP "pindel.filter.germline.min_var_allele_freq = $min_vaf\n";
     print PP "pindel.filter.germline.require_balanced_reads = \"true\"\n";
     print PP "pindel.filter.germline.remove_complex_indels = \"true\"\n";
     print PP "pindel.filter.germline.max_num_homopolymer_repeat_units = 6\n";
@@ -620,7 +663,7 @@ sub bsub_filter_vcf{
     print FILTER "VARSCAN_snv_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.snp.filtered.vcf\n";
     print FILTER "VARSCAN_indel_VCF="."\${RUNDIR}/varscan/".$sample_name."raw.indel.filtered.vcf\n";
     print FILTER "PINDEL_VCF="."\${RUNDIR}/pindel/pindel.out.raw.CvgVafStrand_pass.Homopolymer_pass.vcf\n";
-    print FILTER "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $sample_name\n";
+    print FILTER "     ".$run_script_path."filter_gatk_varscan.pl \${RUNDIR} $min_vaf $sample_name\n";
     close FILTER;
 
 
@@ -772,3 +815,74 @@ sub bsub_vcf_2_maf{
     system ($bsub_com);
 
     }
+
+sub bsub_rc{
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j9_rc_".$sample_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+
+ 
+   if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
+    my $IN_bam_T = $sample_full_path."/".$sample_name.".T.bam";
+    my $IN_bam_N = $sample_full_path."/".$sample_name.".N.bam";
+    my $f_vcf = $sample_full_path."/".$sample_name.".rc.input.vcf";
+    my $f_vcf_cut =$f_vcf.".cut";
+
+    open(OUT,">$f_vcf_cut");
+    my %chrpos;
+    my $chrpos2;
+    foreach my $l (`cat $f_vcf`)
+    {
+     my $ltr=$l;
+     my @t=split("\t",$ltr);
+     $chrpos2=$t[0]."-".$t[1]."-".$t[2];
+     if(!defined $chrpos{$chrpos2})
+     {
+     print OUT $t[0],"\t",$t[1],"\t",$t[2],"\n";
+     }
+
+    }
+    close OUT;
+
+    my $f_rc_t_out = $sample_full_path."/".$sample_name.".T.rc.tsv";
+    my $f_rc_n_out = $sample_full_path."/".$sample_name.".N.rc.tsv";
+    my $f_vaf_t_out = $sample_full_path."/".$sample_name.".T.rc.vaf";
+    my $f_vaf_n_out = $sample_full_path."/".$sample_name.".N.rc.vaf";
+
+    open(RC, ">$job_files_dir/$current_job_file") or die $!;
+    print RC "#!/bin/bash\n";
+    print RC "TBAM=".$sample_full_path."/".$sample_name.".T.bam\n";
+    print RC "NBAM=".$sample_full_path."/".$sample_name.".N.bam\n";
+    print RC "if [ -e \${TBAM} ]\n";
+    print RC "then\n";   
+    print RC "$bamrc -q 10 -b 10 \${TBAM} -f $h38_REF -l $f_vcf_cut > $f_rc_t_out","\n";  
+    print RC "     ".$run_script_path."bamReadcount2vaf.pl -s $sample_name -l $f_vcf $f_rc_t_out > $f_vaf_t_out","\n"; 
+    print RC "fi","\n";
+    print RC "if [ -e \${NBAM} ]\n";	 
+    print RC "then\n";
+    print RC "$bamrc -q 10 -b 10 \${NBAM} -f $h38_REF -l $f_vcf_cut > $f_rc_n_out","\n";
+    print RC "     ".$run_script_path."bamReadcount2vaf.pl -s $sample_name -l $f_vcf $f_rc_n_out > $f_vaf_n_out","\n"; 
+    print RC "fi","\n";  
+    close RC;
+
+    my $sh_file=$job_files_dir."/".$current_job_file;
+
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system ($bsub_com);
+
+}
