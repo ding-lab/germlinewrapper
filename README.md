@@ -15,6 +15,19 @@ Improvements compared to version 1.1:
 
 Use ensembl V102 for annotation
 
+Trouble shot if vep102 env is not working for you:
+
+1. git clone --branch release/102 https://github.com/Ensembl/ensembl-vep.git
+
+2. LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -Is -R”select[mem>30000] rusage[mem=30000]” -M 30000000 -q dinglab-interactive -a “docker(ensemblorg/ensembl-vep:release_102.0)” /bin/bash
+    launch a vep102 docker env 
+
+3. Go the enseml-vep directory where you just git clone
+    type perl INSTALL.pl
+
+4. Change the vep path in germlinewrapper.pl to where you install the vep. Look for the line my $vepcmd="/storage1/fs1/dinglab/Active/Projects/scao/gitshared/ensembl-vep/vep" in germlinewrapper.pl
+
+
 Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --q
 
 rdir = full path of the folder holding files for this sequence run (user must provide)
