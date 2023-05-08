@@ -167,7 +167,8 @@ my $samtools="/storage1/fs1/songcao/Active/Software/samtools/1.2/bin";
 my $varscan="/storage1/fs1/songcao/Active/Software/varscan/2.3.8.ndown";
 #my $STRELKA_DIR="/gscmnt/gc2525/dinglab/rmashl/Software/bin/strelka/1.0.14/bin";
 my $f_ref_annot="/storage1/fs1/songcao/Active/Database/hg38_database/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa";
-my $vepcache="/storage1/fs1/songcao/Active/Database/hg38_database/vep/v85";
+#my $vepcache="/storage1/fs1/songcao/Active/Database/hg38_database/vep/v85";
+my $vepcache="/storage1/fs1/songcao/Active/Database/hg38_database/vep/v102"; 
 my $pindel="/storage1/fs1/songcao/Active/Software/anaconda3/bin/pindel";
 my $PINDEL_DIR="/storage1/fs1/songcao/Active/Software/anaconda3/bin";
 my $gatkexe3="/storage1/fs1/songcao/Active/Software/gatk/3.7/GenomeAnalysisTK.jar";
@@ -175,7 +176,9 @@ my $gatkexe4="gatk";
 my $picardexe="/storage1/fs1/songcao/Active/Software/picard/picard.jar";
 my $java_dir="/storage1/fs1/songcao/Active/Software/jre1.8.0_121";
 
-my $vepcmd="/storage1/fs1/songcao/Active/Database/hg38_database/vep/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
+#my $vepcmd="/storage1/fs1/songcao/Active/Database/hg38_database/vep/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
+
+my $vepcmd="/storage1/fs1/dinglab/Active/Projects/scao/gitshared/ensembl-vep/vep";
 
 my $first_line=`head -n 1 $h38_REF`; 
 
