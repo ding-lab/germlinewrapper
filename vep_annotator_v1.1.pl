@@ -33,7 +33,7 @@ my $cmd="";
 my (undef, $tmp_orig_calls)  = tempfile();
 $cmd="/bin/grep -v ^# $paras{'vcf'} > $tmp_orig_calls";
    system($cmd);
-## change buffer_size to 50, song 05/15/23
+## change buffer_size from 500 to 50, song 05/15/23
 # run vep
 my (undef, $tmp_vep_out) = tempfile();
 $cmd = "perl $paras{'vep_cmd'} $opts --buffer_size 50 --offline --cache --dir $paras{'cachedir'} --assembly $paras{'assembly'} --fork 4 --no_progress --no_stats --sift b --ccds --uniprot --hgvs --symbol --numbers --domains --canonical --protein --biotype --uniprot --tsl --pubmed --variant_class --shift_hgvs 1 --check_existing --total_length --allele_number --no_escape --xref_refseq --failed 1 --minimal --flag_pick_allele --pick_order canonical,tsl,biotype,rank,ccds,length --format vcf --vcf -i $tmp_orig_calls -o $tmp_vep_out --force_overwrite  --fasta $paras{'reffasta'}";
