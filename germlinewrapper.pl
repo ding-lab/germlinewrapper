@@ -812,7 +812,7 @@ sub bsub_vcf_2_maf{
     close MAF;
 
     my $sh_file=$job_files_dir."/".$current_job_file;
-    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(ensemblorg/ensembl-vep:release_102.0)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(ensemblorg/ensembl-vep:release_102.0)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
 
