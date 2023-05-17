@@ -733,6 +733,19 @@ sub bsub_merge_vcf{
 	}
 
 
+#sub bsub_split_vcf{
+
+#    my ($step_by_step) = @_;
+#    if ($step_by_step) {
+#        $hold_job_file = "";
+#    }else{
+#        $hold_job_file = $current_job_file;
+#    }
+
+#    $current_job_file = "j7_split_vcf.".$sample_name.".sh";
+ 
+#}
+
 sub bsub_vcf_2_maf{
   
     my ($step_by_step) = @_;
@@ -760,7 +773,7 @@ sub bsub_vcf_2_maf{
     print MAF "#!/bin/bash\n";
     print MAF "RUNDIR=".$sample_full_path."\n";
     print MAF "cat > \${RUNDIR}/vep.merged.input <<EOF\n";
-    print MAF "merged.vep.vcf = ./merged.vcf\n";
+    print MAF "merged.vep.vcf = ./merged.1.vcf\n";
     print MAF "merged.vep.output = ./merged.VEP.vcf\n";
     print MAF "merged.vep.vep_cmd = $vepcmd\n";
 #/gscmnt/gc2525/dinglab/rmashl/Software/bin/VEP/v85/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl\n";
@@ -786,7 +799,7 @@ sub bsub_vcf_2_maf{
     print MAF '          CHECK=$?',"\n";
     print MAF '		if [ ${CHECK} -eq 0 ]',"\n";
     print MAF "then\n"; 
-    print MAF "     ".$run_script_path."remove_svtype.pl \${F_VCF_0} \${F_VCF_1}\n";
+    print MAF "     ".$run_script_path."remove_svtype_largeindel.pl \${F_VCF_0} \${F_VCF_1}\n";
     print MAF "cd \${RUNDIR}\n";
     print MAF ". $script_dir/set_envvars\n";
     print MAF "     ".$run_script_path."vep_annotator_v1.1.pl ./vep.merged.input >&./vep.merged.log\n";
@@ -798,7 +811,7 @@ sub bsub_vcf_2_maf{
     print MAF "     ".$run_script_path."vcf2maf.pl --input-vcf \${F_VCF_2} --output-maf \${F_maf} --tumor-id $sample_name\_T --normal-id $sample_name\_N --ref-fasta $f_ref_annot\n";
     print MAF "fi\n"; 
     print MAF "else\n";
-    print MAF "     ".$run_script_path."remove_svtype.pl \${F_VCF_0} \${F_VCF_1}\n";
+    print MAF "     ".$run_script_path."remove_svtype_largeindel.pl \${F_VCF_0} \${F_VCF_1}\n";
     print MAF "cd \${RUNDIR}\n";
     print MAF ". $script_dir/set_envvars\n";
     print MAF "     ".$run_script_path."vep_annotator_v1.1.pl ./vep.merged.input >&./vep.merged.log\n";

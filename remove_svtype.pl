@@ -12,6 +12,8 @@ while(<IN>)
 {
 	my $l=$_; 
 	chomp($l);
+	if($l=~/^#/) { print $l, "\n"; next; }
+
 	$l=~s/SVTYPE=//g; 
 	print OUT $l,"\n"; 
 }
