@@ -12,7 +12,9 @@ open(IN,"<$file_in");
 #open(OUT,">$file_out"); 
 my $f_out; 
 my $sn;
-my @t;  
+my @t; 
+my %openfile=();
+ 
 while(<IN>)
 {
 	my $l=$_; 
@@ -24,7 +26,11 @@ while(<IN>)
 		$sn=$t[15]; 
 		$sn=~s/_T$//g; 
 		$f_out=$dir_out."/".$sn."/".$sn.".rc.input.vcf";
-		open(OUT,">>$f_out"); 	
+		if(!defined $openfile{$sn})
+		{
+		open(OUT,">$f_out"); 
+		$openfile{$sn}=1; 	
+		}
 		print OUT $t[4],"\t",$t[5],"\t",$t[6],"\t",$t[10],"\t",$t[12],"\n"; 
 	}
 }
