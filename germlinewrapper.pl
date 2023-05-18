@@ -10,7 +10,7 @@ use strict;
 use warnings;
 #use POSIX;
 use Getopt::Long;
-my $version = 1.1;
+my $version = 2.1;
 #color code
 my $red = "\e[31m";
 my $gray = "\e[37m";
@@ -290,10 +290,13 @@ if($step_number==10)
         }
 
     my $f_maf=$run_dir."/".$working_name.".maf";
-    my $f_maf_rc=$f_maf.".rc";
+
+    my $f_maf_rc=$run_dir."/".$working_name.".rc.maf";
+    my $f_maf_rc_coding=$run_dir."/".$working_name.".rc.coding.maf";
 
     open(ADDRC, ">$job_files_dir/$current_job_file") or die $!;
     print ADDRC "      ".$run_script_path."add_rc.pl ".$run_dir." ".$f_maf." ".$f_maf_rc."\n";
+    print ADDRC "      ".$run_script_path."generate_coding_report.pl ".$f_maf_rc." ".$f_maf_rc_coding."\n";
     close ADDRC;
 
     my $sh_file=$job_files_dir."/".$current_job_file;

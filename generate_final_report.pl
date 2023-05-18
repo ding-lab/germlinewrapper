@@ -34,7 +34,9 @@ foreach my $d (`ls $run_dir`)
 			else { 
 				my @temp=split("\t",$ltr); 
 				my $annot=$temp[8];
-				if($annot=~/Frame_Shift_Del/ || $annot=~/Frame_Shift_Ins/ || $annot=~/Missense_Mutation/ || $annot=~/Nonsense_Mutation/ ||  $annot=~/Nonstop_Mutation/ || $annot=~/Silent/ || $annot=~/Splice_Site/ || $annot=~/In_Frame_Ins/ || $annot=~/In_Frame_Del/) {
+				#if($annot=~/Frame_Shift_Del/ || $annot=~/Frame_Shift_Ins/ || $annot=~/Missense_Mutation/ || $annot=~/Nonsense_Mutation/ ||  $annot=~/Nonstop_Mutation/ || $annot=~/Silent/ || $annot=~/Splice_Site/ || $annot=~/In_Frame_Ins/ || $annot=~/In_Frame_Del/) {
+				if(1==1) 
+				       {
 					print OUT1 $ltr,"\n"; 
 					$count++;
 					} 
