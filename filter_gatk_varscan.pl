@@ -191,11 +191,8 @@ while(<INV>)
 	#<STDIN>;
 
 	## remove M,R,W,Y allele ##
-	if($refvar=~/M/) { next; }
-	if($refvar=~/R/) { next; }
-	if($refvar=~/W/) { next; }
-    if($refvar=~/Y/) { next; }
-
+        #if($refvar=~/M/ || $refvar=~/R/ || $refvar=~/W/ || $refvar=~/Y/ || $refvar=~/B/) { next; }
+	if($refvar =~/[^ATGC]/) { next; }
 	### coverage and vaf cut-off ##
 	
 	if($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev>=$min_coverage && (($n_var_rev+$n_var_fw)/($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev)>$vcf_cutoff)) 
@@ -230,11 +227,8 @@ while(<ING>)
     my $infor=$temp[9];
     my @temp2=split(":",$infor); 
 	## remove M allel ##
-  	if($refvar=~/M/) { next; }
-	if($refvar=~/R/) { next; }
-    if($refvar=~/W/) { next; }
-    if($refvar=~/Y/) { next; }
-
+    #if($refvar=~/M/ || $refvar=~/R/ || $refvar=~/W/ || $refvar=~/Y/ || $refvar=~/B/) { next; }
+    if($refvar =~/[^ATGC]/) { next; }
     if($desc=~/AD/) 
 	{
 
@@ -274,11 +268,11 @@ while(<INSV>)
     my $n_ref_rev=(split(":",$infor))[-3];
     my $n_var_fw=(split(":",$infor))[-2];
     my $n_var_rev=(split(":",$infor))[-1];    
-    if($refvar=~/M/) { next; }
-    if($refvar=~/R/) { next; }
-    if($refvar=~/W/) { next; }
-    if($refvar=~/Y/) { next; }
-
+    #if($refvar=~/M/) { next; }
+    #if($refvar=~/R/) { next; }
+    #if($refvar=~/W/) { next; }
+    #if($refvar=~/Y/) { next; }
+    if($refvar =~/[^ATGC]/) { next; }
 	#print $line,"\n";
     #print $n_ref_fw,"\n"; 
     #print $n_ref_rev,"\n";
@@ -313,14 +307,12 @@ while(<INSG>)
     my @temp2=split(":",$infor);
     my $desc=$temp[8];
 
-	## remove M allele ##
-  	if($refvar=~/M/) { next; }
-	if($refvar=~/R/) { next; }
-    if($refvar=~/W/) { next; }
-    if($refvar=~/Y/) { next; }
+     ## remove M allele ##
+    #if($refvar=~/M/ || $refvar=~/R/ || $refvar=~/W/ || $refvar=~/Y/ || $refvar=~/B/) { next; }
+    if($refvar =~/[^ATGC]/) { next; }
 
-	if($desc=~/AD/) 
-	{
+    if($desc=~/AD/) 
+    {
     my @temp3=split(",",$temp2[1]);
     my $n_ref=$temp3[0];
     my $n_var=$temp3[1];
