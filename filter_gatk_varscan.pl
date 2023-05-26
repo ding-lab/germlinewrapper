@@ -192,7 +192,7 @@ while(<INV>)
 
 	## remove M,R,W,Y allele ##
         #if($refvar=~/M/ || $refvar=~/R/ || $refvar=~/W/ || $refvar=~/Y/ || $refvar=~/B/) { next; }
-	if($refvar =~/[^ATGC]/) { next; }
+	if($refvar =~/[^ATGC_]/) { next; }
 	### coverage and vaf cut-off ##
 	
 	if($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev>=$min_coverage && (($n_var_rev+$n_var_fw)/($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev)>$vcf_cutoff)) 
@@ -228,7 +228,7 @@ while(<ING>)
     my @temp2=split(":",$infor); 
 	## remove M allel ##
     #if($refvar=~/M/ || $refvar=~/R/ || $refvar=~/W/ || $refvar=~/Y/ || $refvar=~/B/) { next; }
-    if($refvar =~/[^ATGC]/) { next; }
+    if($refvar =~/[^ATGC_]/) { next; }
     if($desc=~/AD/) 
 	{
 
@@ -272,14 +272,14 @@ while(<INSV>)
     #if($refvar=~/R/) { next; }
     #if($refvar=~/W/) { next; }
     #if($refvar=~/Y/) { next; }
-    if($refvar =~/[^ATGC]/) { next; }
+    if($refvar =~/[^ATGC_]/) { next; }
 	#print $line,"\n";
     #print $n_ref_fw,"\n"; 
     #print $n_ref_rev,"\n";
     #print $n_var_fw,"\n";
     #print $n_var_rev,"\n";
 	#<STDIN>;
-	if($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev>=$min_coverage && (($n_var_rev+$n_var_fw)/($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev)>$vcf_cutoff))
+    if($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev>=$min_coverage && (($n_var_rev+$n_var_fw)/($n_ref_fw+$n_ref_rev+$n_var_fw+$n_var_rev)>$vcf_cutoff))
     {
          print OUTSV $line,"\n";
     }
@@ -309,7 +309,7 @@ while(<INSG>)
 
      ## remove M allele ##
     #if($refvar=~/M/ || $refvar=~/R/ || $refvar=~/W/ || $refvar=~/Y/ || $refvar=~/B/) { next; }
-    if($refvar =~/[^ATGC]/) { next; }
+    if($refvar =~/[^ATGC_]/) { next; }
 
     if($desc=~/AD/) 
     {
@@ -322,7 +322,8 @@ while(<INSG>)
     }
     }
 }
-  }
+
+}
 
 close(INP);
 close(ING);
