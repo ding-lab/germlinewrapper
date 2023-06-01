@@ -1,4 +1,4 @@
-# germlinewrapper V2.1, compute1
+# germlinewrapper V2.2, compute1
 
 for HG38 reference
 
@@ -11,21 +11,10 @@ Detect germline variants from normal sample
 GermineWrapper pipeline is a fully automated and modular software package designed for detection of germline variants from normal exome data. It works on LSF job scheduler. Multiple standard variant callings are included in the pipeline such as varscan, gatk and pindel.
 
 
-Improvements compared to version 1.1:
+Improvements compared to version 2.1:
 
-Use ensembl V102 for annotation
+Add AF to the maf
 
-Trouble shot if vep102 env is not working for you:
-
-1. git clone --branch release/102 https://github.com/Ensembl/ensembl-vep.git
-
-2. LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -Is -R”select[mem>30000] rusage[mem=30000]” -M 30000000 -q dinglab-interactive -a “docker(ensemblorg/ensembl-vep:release_102.0)” /bin/bash
-    launch a vep102 docker env 
-
-3. Go the enseml-vep directory where you just git clone
-    type perl INSTALL.pl
-
-4. Change the vep path in germlinewrapper.pl to where you install the vep. Look for the line my $vepcmd="/storage1/fs1/dinglab/Active/Projects/scao/gitshared/ensembl-vep/vep" in germlinewrapper.pl
 
 
 Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --q

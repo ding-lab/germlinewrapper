@@ -37,7 +37,7 @@ $cmd="/bin/grep -v ^# $paras{'vcf'} > $tmp_orig_calls";
 ## change back, song 05/15/23, and change fork ==2
 # run vep
 my (undef, $tmp_vep_out) = tempfile();
-$cmd = "perl $paras{'vep_cmd'} $opts --buffer_size 500 --offline --cache --dir $paras{'cachedir'} --assembly $paras{'assembly'} --fork 4 --no_progress --no_stats --sift b --ccds --uniprot --hgvs --symbol --numbers --domains --canonical --protein --biotype --uniprot --tsl --pubmed --variant_class --shift_hgvs 1 --check_existing --total_length --allele_number --no_escape --xref_refseq --failed 1 --minimal --no_check_variants_order  --flag_pick_allele --pick_order canonical,tsl,biotype,rank,ccds,length --format vcf --vcf -i $tmp_orig_calls -o $tmp_vep_out --force_overwrite  --fasta $paras{'reffasta'}";
+$cmd = "perl $paras{'vep_cmd'} $opts --buffer_size 500 --offline --cache --dir $paras{'cachedir'} --assembly $paras{'assembly'} --fork 4 --everything --af_exac --no_progress --no_stats --sift b --ccds --uniprot --hgvs --symbol --numbers --domains --canonical --protein --biotype --uniprot --tsl --pubmed --variant_class --shift_hgvs 1 --check_existing --total_length --allele_number --no_escape --xref_refseq --failed 1 --minimal --no_check_variants_order  --flag_pick_allele --pick_order canonical,tsl,biotype,rank,ccds,length --format vcf --vcf -i $tmp_orig_calls -o $tmp_vep_out --force_overwrite  --fasta $paras{'reffasta'}";
 
 #$cmd = "perl $paras{'vep_cmd'} $opts --buffer_size 10000 --offline --cache --dir $paras{'cachedir'} --assembly $paras{'assembly'} --fork 4 --format vcf --vcf -i $tmp_orig_calls -o $tmp_vep_out --force_overwrite  --fasta $paras{'reffasta'}";
 
