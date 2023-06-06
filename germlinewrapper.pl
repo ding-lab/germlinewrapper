@@ -10,7 +10,7 @@ use strict;
 use warnings;
 #use POSIX;
 use Getopt::Long;
-my $version = 2.1;
+my $version = 2.2;
 #color code
 my $red = "\e[31m";
 my $gray = "\e[37m";
