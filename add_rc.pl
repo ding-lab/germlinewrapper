@@ -10,8 +10,10 @@ OUT
 
 die $usage unless @ARGV == 3;
 my ($run_dir,$f_maf,$f_out)=@ARGV;
-my $sn_1=""; 
-my $sn_2=""; 
+my $sn_1="";
+ 
+my $sn_2="";
+ 
 my %n_ref=(); 
 my %n_var=(); 
 my %t_ref=(); 
@@ -26,12 +28,13 @@ foreach my $l (`cat $f_maf`)
 	chomp($ltr);
 	my @t=split("\t",$ltr); 
  
-	if($ltr=~/^Hugo/) { print OUT $ltr,"\n"; }
+	if($ltr=~/^Hugo/ || $ltr=~/^#version/) { if($ltr=~/^Hugo/) { print OUT $ltr,"\n"; } }
 
 	else {
 
 	 	$sn_1=$t[15]; $sn_1=~s/_T//g; 
-
+	        print $sn_2,"\t",$sn_1,"\n"; 
+		<STDIN>;		
 		if($sn_2 eq "" || $sn_2 ne $sn_1)
 		{
 
