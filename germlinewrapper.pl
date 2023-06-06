@@ -300,7 +300,7 @@ if($step_number==10)
     close ADDRC;
 
     my $sh_file=$job_files_dir."/".$current_job_file;
-    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
 }
