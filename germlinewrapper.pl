@@ -54,9 +54,10 @@ $yellow [4]  Parse pindel
 $yellow [5]  filter vcf
 $purple [6]  Merge calls
 $green [7]  VCF2MAF
-$cyan [8]  Generate final maf
+$cyan [8]  Generate final maf without readcount
 $cyan [9]  Do bam readcount
-$cyan [10] add readcount to maf file
+$cyan [10] Add readcount to maf file
+$cyan [11] Generate maf file with readcount
 $normal
 OUT
 
@@ -188,7 +189,7 @@ opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
 close DH;
 
-if ($step_number < 8  || $step_number == 9) {
+if ($step_number < 8  || $step_number == 9 || $step_number ==10) {
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
         if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
@@ -223,6 +224,8 @@ if ($step_number < 8  || $step_number == 9) {
 				    &bsub_vcf_2_maf(1);		
 		}elsif ($step_number==9) {
                                     &bsub_rc(1);
+                }elsif ($step_number==10) {
+                                    &bsub_addrc(1);
                 }
 		}
 		}
@@ -247,24 +250,10 @@ if($step_number==8)
 
     open(REPRUN, ">$job_files_dir/$current_job_file") or die $!;
     print REPRUN "#!/bin/bash\n";
-    #print REPRUN "#BSUB -n 1\n";
-    #print REPRUN "#BSUB -R \"rusage[mem=40000]\"","\n";
-    #print REPRUN "#BSUB -M 40000000\n";
-    #print REPRUN "#BSUB -a \'docker(registry.gsc.wustl.edu/genome/genome_perl_environment)\'\n";
-    #print REPRUN "#BSUB -q long\n";
-    #print REPRUN "#BSUB -q research-hpc\n";
-    #print REPRUN "#BSUB -q ding-lab\n";
-    #print REPRUN "#BSUB -o $lsf_file_dir","/","$current_job_file.out\n";
-    #print REPRUN "#BSUB -e $lsf_file_dir","/","$current_job_file.err\n";
-    #print REPRUN "#BSUB -J $current_job_file\n";
-    #print REPRUN "#BSUB -w \"$hold_job_file\"","\n";
     print REPRUN "MAF=".$run_dir."/".$working_name.".maf\n";
     print REPRUN "      ".$run_script_path."generate_final_report.pl ".$run_dir."\n";
     print REPRUN "      ".$run_script_path."split_maf_bysample.pl \${MAF} ".$run_dir."\n";
     close REPRUN;
-
-    #$bsub_com = "bsub < $job_files_dir/$current_job_file\n";
-    #system ($bsub_com);
     
     my $sh_file=$job_files_dir."/".$current_job_file;
     $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
@@ -273,12 +262,12 @@ if($step_number==8)
 
 }
 
-if($step_number==10)
+if($step_number==11)
     {
 
-    print $yellow, "Submitting jobs for generating the report for the run ....",$normal, "\n";
+    print $yellow, "Submitting jobs for generating the report for the run with readcount information ....",$normal, "\n";
     $hold_job_file=$current_job_file;
-    $current_job_file = "j10_Run_addrc_".$working_name.".sh";
+    $current_job_file = "j11_Run2_report_gl_".$working_name.".sh";
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
 
@@ -289,14 +278,52 @@ if($step_number==10)
         `rm $current_job_file`;
         }
 
-    my $f_maf=$run_dir."/".$working_name.".maf";
-
     my $f_maf_rc=$run_dir."/".$working_name.".rc.maf";
     my $f_maf_rc_coding=$run_dir."/".$working_name.".rc.coding.maf";
 
+    open(REPRUN2, ">$job_files_dir/$current_job_file") or die $!;
+    print REPRUN2 "#!/bin/bash\n";
+    #print REPRUN2 "MAF=".$run_dir."/".$working_name.".maf\n";
+    print REPRUN2 "      ".$run_script_path."generate_final_report.rc.pl ".$run_dir."\n";
+    print REPRUN2 "      ".$run_script_path."generate_coding_report.pl ".$f_maf_rc." ".$f_maf_rc_coding."\n";
+    close REPRUN2;
+
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system ($bsub_com);
+
+}
+
+sub bsub_addrc{
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j10_rc_".$sample_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+
+
+   if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
+    my $f_maf=$sample_full_path."/".$sample_name.".maf";
+
+    my $f_maf_rc=$sample_full_path."/".$sample_name.".rc.maf";
+    #my $f_maf_rc_coding=$sample_full_path."/".$sample_name.".rc.coding.maf";
+
     open(ADDRC, ">$job_files_dir/$current_job_file") or die $!;
     print ADDRC "      ".$run_script_path."add_rc.pl ".$run_dir." ".$f_maf." ".$f_maf_rc."\n";
-    print ADDRC "      ".$run_script_path."generate_coding_report.pl ".$f_maf_rc." ".$f_maf_rc_coding."\n";
+   # print ADDRC "      ".$run_script_path."generate_coding_report.pl ".$f_maf_rc." ".$f_maf_rc_coding."\n";
     close ADDRC;
 
     my $sh_file=$job_files_dir."/".$current_job_file;

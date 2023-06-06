@@ -26,8 +26,8 @@ foreach my $l (`cat $f_maf`)
 	chomp($ltr);
 	my @t=split("\t",$ltr); 
  
-	if($ltr=~/^Hugo/) { print OUT $ltr,"\n"; }
-
+	#if($ltr=~/^Hugo/) { print OUT $ltr,"\n"; }
+        if($ltr=~/^Hugo/ || $ltr=~/^#version/) { if($ltr=~/^Hugo/) { print OUT $ltr,"\n"; } }
 	else {
 
 	 	$sn_1=$t[15]; $sn_1=~s/_T//g; 
@@ -82,7 +82,7 @@ foreach my $l (`cat $f_maf`)
 		#print $id2,"\t",$t_var{$id2},"\t",$n_var{$id2},"\t",$sn_1,"\n"; 
 		#<STDIN>;
  	
-		if(defined $t_var{$id2} && (length($t[10])<=100) && (length($t[12])<=100))
+		if(defined $t_var{$id2} && (defined $n_var{$id2}) && (length($t[10])<=100) && (length($t[12])<=100))
 		{ 
 
 		print OUT $t[0]; 
