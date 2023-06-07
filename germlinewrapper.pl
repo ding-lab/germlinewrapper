@@ -278,14 +278,14 @@ if($step_number==11)
         `rm $current_job_file`;
         }
 
-    my $f_maf_rc=$run_dir."/".$working_name.".rc.maf";
-    my $f_maf_rc_coding=$run_dir."/".$working_name.".rc.coding.maf";
+    #my $f_maf_rc=$run_dir."/".$working_name.".rc.maf";
+    #my $f_maf_rc_coding=$run_dir."/".$working_name.".rc.coding.maf";
 
     open(REPRUN2, ">$job_files_dir/$current_job_file") or die $!;
     print REPRUN2 "#!/bin/bash\n";
     #print REPRUN2 "MAF=".$run_dir."/".$working_name.".maf\n";
     print REPRUN2 "      ".$run_script_path."generate_final_report.rc.pl ".$run_dir."\n";
-    print REPRUN2 "      ".$run_script_path."generate_coding_report.pl ".$f_maf_rc." ".$f_maf_rc_coding."\n";
+    print REPRUN2 "      ".$run_script_path."generate_coding_report.rc.pl ".$run_dir."\n";
     close REPRUN2;
 
     my $sh_file=$job_files_dir."/".$current_job_file;
