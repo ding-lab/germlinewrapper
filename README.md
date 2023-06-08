@@ -15,6 +15,8 @@ Improvements compared to version 2.1:
 
 Add AF to the maf
 
+If there is no readcount from tumor bam for a germline variant, assign 0 to the readcount to tumor 
+ 
 Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --q
 
 rdir = full path of the folder holding files for this sequence run (user must provide)
