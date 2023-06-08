@@ -85,7 +85,7 @@ foreach my $l (`cat $f_maf`)
 		#print $id2,"\t",$t_var{$id2},"\t",$n_var{$id2},"\t",$sn_1,"\n"; 
 		#<STDIN>;
  	
-		if(defined $t_var{$id2} && (defined $n_var{$id2}) && (length($t[10])<=100) && (length($t[12])<=100))
+		if(defined $t_var{$id2} && (length($t[10])<=100) && (length($t[12])<=100))
 		{ 
 
 		print OUT $t[0]; 
@@ -94,7 +94,16 @@ foreach my $l (`cat $f_maf`)
 		print OUT "\t",$t[$i]; 
 		}
 
+		if(defined $n_var{$id2})
+		{
 		print OUT "\t",$t_ref{$id2}+$t_var{$id2},"\t",$t_ref{$id2},"\t",$t_var{$id2},"\t",$n_ref{$id2}+$n_var{$id2},"\t",$n_ref{$id2},"\t",$n_var{$id2}; 						
+		}
+
+  		else
+		{
+		 print OUT "\t",$t_ref{$id2}+$t_var{$id2},"\t",$t_ref{$id2},"\t",$t_var{$id2},"\t","0","\t","0",,"\t","0","\n";
+		} 
+
 		for(my $i=45;$i<scalar @t;$i++) 
 		{
 		print OUT "\t",$t[$i]; 		

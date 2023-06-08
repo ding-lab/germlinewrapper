@@ -57,6 +57,8 @@ $green [7]  VCF2MAF
 $cyan [8]  Generate final maf
 $cyan [9]  Do bam readcount
 $cyan [10] add readcount to maf file
+$cyan [11] Generate maf file with readcount
+$gray [12] Generate indvidual vcf file with population allele freqquency
 $normal
 OUT
 
@@ -104,7 +106,7 @@ print "minvaf=",$min_vaf,"\n";
 print $group_name,"\n"; 
 print $compute_username, "\n"; 
 
-if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>10) {
+if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>12) {
       print $usage;
       exit;
    }
@@ -154,6 +156,13 @@ my $script_dir=$run_script_path;
 
 $run_script_path = "/usr/bin/perl ".$run_script_path."/";
 print $run_script_path,"\n";
+
+my $run_script_path_py =`echo \$PWD`;
+chomp $run_script_path_py;
+
+$run_script_path_py = "/storage1/fs1/songcao/Active/Software/anaconda3/bin/python ".$run_script_path_py."/";
+print $run_script_path_py,"\n";
+
 my $hold_RM_job = "norm";
 my $current_job_file = "";#cannot be empty
 my $hold_job_file = "";
@@ -188,7 +197,7 @@ opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
 close DH;
 
-if ($step_number < 8  || $step_number == 9) {
+if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number == 12) {
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
         if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
@@ -223,6 +232,10 @@ if ($step_number < 8  || $step_number == 9) {
 				    &bsub_vcf_2_maf(1);		
 		}elsif ($step_number==9) {
                                     &bsub_rc(1);
+                }elsif ($step_number==10) {
+                                    &bsub_addrc(1);
+                }elsif ($step_number==12) {
+                                    &bsub_af(1);
                 }
 		}
 		}
@@ -273,12 +286,12 @@ if($step_number==8)
 
 }
 
-if($step_number==10)
+if($step_number==11)
     {
 
-    print $yellow, "Submitting jobs for generating the report for the run ....",$normal, "\n";
+    print $yellow, "Submitting jobs for generating the report for the run with readcount information ....",$normal, "\n";
     $hold_job_file=$current_job_file;
-    $current_job_file = "j10_Run_addrc_".$working_name.".sh";
+    $current_job_file = "j11_Run2_report_gl_".$working_name.".sh";
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
     my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
 
@@ -288,21 +301,55 @@ if($step_number==10)
         `rm $lsf_err`;
         `rm $current_job_file`;
         }
+    open(REPRUN2, ">$job_files_dir/$current_job_file") or die $!;
+    print REPRUN2 "#!/bin/bash\n";
+    print REPRUN2 "      ".$run_script_path."generate_final_report.rc.pl ".$run_dir."\n";
+    print REPRUN2 "      ".$run_script_path."generate_coding_report.rc.pl ".$run_dir."\n";
+    close REPRUN2;
 
-    my $f_maf=$run_dir."/".$working_name.".maf";
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system ($bsub_com);
 
-    my $f_maf_rc=$run_dir."/".$working_name.".rc.maf";
-    my $f_maf_rc_coding=$run_dir."/".$working_name.".rc.coding.maf";
+ }
 
+sub bsub_addrc{
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j10_rc_".$sample_name.".sh";
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+
+
+   if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
+    my $f_maf=$sample_full_path."/".$sample_name.".maf";
+
+    my $f_maf_rc=$sample_full_path."/".$sample_name.".rc.maf";
+    #my $f_maf_rc_coding=$sample_full_path."/".$sample_name.".rc.coding.maf";
+    #
     open(ADDRC, ">$job_files_dir/$current_job_file") or die $!;
     print ADDRC "      ".$run_script_path."add_rc.pl ".$run_dir." ".$f_maf." ".$f_maf_rc."\n";
-    print ADDRC "      ".$run_script_path."generate_coding_report.pl ".$f_maf_rc." ".$f_maf_rc_coding."\n";
+    
     close ADDRC;
 
     my $sh_file=$job_files_dir."/".$current_job_file;
-    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>200000] rusage[mem=200000]\" -M 200000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    $bsub_com = "bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>80000] rusage[mem=80000]\" -M 80000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
+
 }
 
 sub bsub_gatk{
@@ -904,3 +951,50 @@ sub bsub_rc{
     system ($bsub_com);
 
 }
+
+## python pickCaller.py -i  /scratch1/fs1/dinglab/scao/gw/testgwaf/MILD-B587/merged.1.vcf -o MILD-B587 -O /scratch1/fs1/dinglab/scao/gw/testgwaf/MILD-B587
+sub bsub_af{
+  
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+
+    $current_job_file = "j12_af.".$sample_name.".sh";
+
+
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
+    open(AF, ">$job_files_dir/$current_job_file") or die $!;
+    print AF "#!/bin/bash\n";
+    print AF "RUNDIR=".$sample_full_path."\n";
+    print AF "cat > \${RUNDIR}/vep.merged.singleCaller.input <<EOF\n";
+    print AF "merged.vep.vcf = ./".$sample_name.".singleCaller.vcf\n";
+    print AF "merged.vep.output = ./".$sample_name.".singleCaller.vep.vcf\n";
+    print AF "merged.vep.vep_cmd = $vepcmd\n";
+    print AF "merged.vep.cachedir = $vepcache\n";
+    print AF "merged.vep.reffasta = $f_ref_annot\n";
+    print AF "merged.vep.assembly = GRCh38\n";
+    print AF "EOF\n";
+    print AF "F_VCF_in=".$sample_full_path."/merged.1.vcf\n";
+    print AF "     ".$run_script_path_py."pickCaller.py -i \${F_VCF_in} -o $sample_name -O $sample_full_path","\n";  
+    print AF "cd \${RUNDIR}\n";
+    print AF "     ".$run_script_path."vep_annotator_v1.1_af.pl ./vep.merged.singleCaller.input >&./vep.merged.singlecaller.log\n";
+    close AF;
+
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(ensemblorg/ensembl-vep:release_102.0)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system ($bsub_com); 
+}
+
