@@ -304,7 +304,7 @@ if($step_number==11)
     open(REPRUN2, ">$job_files_dir/$current_job_file") or die $!;
     print REPRUN2 "#!/bin/bash\n";
     print REPRUN2 "      ".$run_script_path."generate_final_report.rc.pl ".$run_dir."\n";
-    print REPRUN2 "      ".$run_script_path."generate_coding_report.rc.pl ".$run_dir."\n";
+    print REPRUN2 "      ".$run_script_path."generate_final_report.coding.rc.pl ".$run_dir."\n";
     close REPRUN2;
 
     my $sh_file=$job_files_dir."/".$current_job_file;
