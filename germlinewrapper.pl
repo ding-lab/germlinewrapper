@@ -10,7 +10,7 @@ use strict;
 use warnings;
 #use POSIX;
 use Getopt::Long;
-my $version = 2.2;
+my $version = 2.3;
 #color code
 my $red = "\e[31m";
 my $gray = "\e[37m";
@@ -170,6 +170,10 @@ my $bsub_com = "";
 my $sample_full_path = "";
 my $sample_name = "";
 my $h38_REF_bai=$h38_REF.".fai";
+my $h38_REF_dict=$h38_REF.".dict"; 
+
+my $bcftools="/storage1/fs1/dinglab/Active/Projects/litingz/software/conda/bin/bcftools";
+my $vcftools="/storage1/fs1/songcao/Active/Software/anaconda3/bin/vcftools";
 my $bamrc="/storage1/fs1/songcao/Active/Software/bam-readcount/0.7.4/bam-readcount";
 my $gatk="/storage1/fs1/songcao/Active/Software/GenomeAnalysis/GenomeAnalysisTK.jar";
 my $samtools="/storage1/fs1/songcao/Active/Software/samtools/1.2/bin";
@@ -184,6 +188,10 @@ my $gatkexe3="/storage1/fs1/songcao/Active/Software/gatk/3.7/GenomeAnalysisTK.ja
 my $gatkexe4="gatk";
 my $picardexe="/storage1/fs1/songcao/Active/Software/picard/picard.jar";
 my $java_dir="/storage1/fs1/songcao/Active/Software/jre1.8.0_121";
+my $bgzip="/storage1/fs1/songcao/Active/Software/anaconda3/bin/bgzip";
+my $tabix="/storage1/fs1/songcao/Active/Software/anaconda3/bin/tabix";
+my $AD_thres=5; 
+my $f_bed_v102="/storage1/fs1/dinglab/Active/Projects/fernanda/Projects/PECGS/BED_files_ROI/gencode36_vep102/Homo_sapiens.GRCh38.102.allCDS.1based.2bpFlanks.withCHR.bed";
 
 #my $vepcmd="/storage1/fs1/songcao/Active/Database/hg38_database/vep/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
 
@@ -210,10 +218,10 @@ if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number
                    &bsub_gatk();
                    &bsub_varscan();
                    &bsub_pindel();
-		   &bsub_parse_pindel();
-		   &bsub_filter_vcf();
-	           &bsub_merge_vcf();
-		   &bsub_vcf_2_maf();
+		           &bsub_parse_pindel();
+		           &bsub_filter_vcf();
+	               &bsub_merge_vcf();
+		           &bsub_vcf_2_maf();
                    #&bsub_vep();
                 }
                  elsif ($step_number == 1) {
@@ -235,7 +243,7 @@ if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number
                 }elsif ($step_number==10) {
                                     &bsub_addrc(1);
                 }elsif ($step_number==12) {
-                                    &bsub_af(1);
+                                    &bsub_generate_charg_vcf(1);
                 }
 		}
 		}
@@ -953,7 +961,7 @@ sub bsub_rc{
 }
 
 ## python pickCaller.py -i  /scratch1/fs1/dinglab/scao/gw/testgwaf/MILD-B587/merged.1.vcf -o MILD-B587 -O /scratch1/fs1/dinglab/scao/gw/testgwaf/MILD-B587
-sub bsub_af{
+sub bsub_generate_charg_vcf{
   
     my ($step_by_step) = @_;
     if ($step_by_step) {
@@ -963,7 +971,7 @@ sub bsub_af{
     }
 
 
-    $current_job_file = "j12_af.".$sample_name.".sh";
+``    $current_job_file = "j12_chargvcf.".$sample_name.".sh";
 
 
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
@@ -975,26 +983,110 @@ sub bsub_af{
     `rm $current_job_file`;
     }
 
-    open(AF, ">$job_files_dir/$current_job_file") or die $!;
-    print AF "#!/bin/bash\n";
-    print AF "RUNDIR=".$sample_full_path."\n";
-    print AF "cat > \${RUNDIR}/vep.merged.singleCaller.input <<EOF\n";
-    print AF "merged.vep.vcf = ./".$sample_name.".singleCaller.vcf\n";
-    print AF "merged.vep.output = ./".$sample_name.".singleCaller.vep.vcf\n";
-    print AF "merged.vep.vep_cmd = $vepcmd\n";
-    print AF "merged.vep.cachedir = $vepcache\n";
-    print AF "merged.vep.reffasta = $f_ref_annot\n";
-    print AF "merged.vep.assembly = GRCh38\n";
-    print AF "EOF\n";
-    print AF "F_VCF_in=".$sample_full_path."/merged.1.vcf\n";
-    print AF "     ".$run_script_path_py."pickCaller.py -i \${F_VCF_in} -o $sample_name -O $sample_full_path","\n";  
-    print AF "cd \${RUNDIR}\n";
-    print AF "     ".$run_script_path."vep_annotator_v1.1_af.pl ./vep.merged.singleCaller.input >&./vep.merged.singlecaller.log\n";
-    close AF;
+    open(CVCF, ">$job_files_dir/$current_job_file") or die $!;
+    print CVCF "#!/bin/bash\n";
+    print CVCF "RUNDIR=".$sample_full_path."\n";
+    print CVCF "VCFsingle=".$sample_full_path."/".$sample_name.".singleCaller.vcf\n";
+    print CVCF "VCFsinglefix=".$sample_full_path."/".$sample_name.".singleCaller.fixedHeader.vcf\n"; 
+    print CVCF "VCFsinglefixgz=".$sample_full_path."/".$sample_name.".singleCaller.fixedHeader.vcf.gz\n"; 
+    print CVCF "WT_filtered_VCF=".$sample_full_path."/".$sample_name.".filtered.noWT.vcf\n";
+    print CVCF "WT_filtered_VCF_gz=".$sample_full_path."/".$sample_name.".filtered.noWT.vcf.gz\n"; 
+    print CVCF "AD_filtered_VCF=".$sample_full_path."/".$sample_name.".filtered.AD.".${AD_thres}.".vcf","\n";
+    print CVCF "AD_filtered_VCF_gz=".$sample_full_path."/".$sample_name.".filtered.AD.".${AD_thres}.".vcf.gz","\n";
+    print CVCF "indel_filtered_VCF=".$sample_full_path."/".$sample_name.".filtered.AD.${AD_thres}.noLongIndels.vcf","\n";
+    print CVCF "indel_filtered_VCF_gz=".$sample_full_path."/".$sample_name.".filtered.AD.${AD_thres}.noLongIndels.vcf.gz","\n";
+    print CVCF "ROI_filtered_VCF=".$sample_full_path."/".$sample_name.".filtered.AD.${AD_thres}.noLongIndels.ROI.vcf.gz","\n";
+    print CVCF "ROI_filtered_VCF_fixed=".$sample_full_path."/".$sample_name.".filtered.AD.${AD_thres}.noLongIndels.ROI.INFOfixed.vcf.gz","\n";
+    print CVCF "ROI_filtered_VCF_fixed_norm=".$sample_full_path."/".$sample_name.".filtered.AD.${AD_thres}.noLongIndels.ROI.INFOfixed.normalized.vcf.gz","\n";
+    print CVCF "ROI_fixed_nWT=".$sample_full_path."/".$sample_name.".filtered.AD.${AD_thres}.noLongIndels.ROI.INFOfixed.vcf.noWT.vcf","\n";
+    print CVCF "ROI_fixed_nWT_gz=".$sample_full_path."/".$sample_name.".filtered.AD.${AD_thres}.noLongIndels.ROI.INFOfixed.vcf.noWT.vcf.gz","\n"; 
+    print CVCF "ROI_fixed_nWT_sorted=".$sample_full_path."/".$sample_name.".sorted.charg.vcf","\n"; 
+    print CVCF "ROI_fixed_nWT_sorted_gz=".$sample_full_path."/".$sample_name.".sorted.charg.vcf.gz","\n"; 
+    print CVCF "VEP102_sorted=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.vcf","\n";
+    print CVCF "VEP102_sorted_gz=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.vcf.gz","\n";
+    print CVCF "VEP102_sorted_fixed=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.infoFixed.vcf","\n";
+    print CVCF "VEP102_sorted_fixed_gz=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.infoFixed.vcf.gz","\n";
+
+    print CVCF "cat > \${RUNDIR}/vep.merged.sorted.input <<EOF\n";
+    print CVCF "merged.vep.vcf = ./".$sample_name.".sorted.charg.vcf\n";
+    print CVCF "merged.vep.output = ./".$sample_name.".sorted.charg.vep102.vcf\n";
+    print CVCF "merged.vep.vep_cmd = $vepcmd\n";
+    print CVCF "merged.vep.cachedir = $vepcache\n";
+    print CVCF "merged.vep.reffasta = $f_ref_annot\n";
+    print CVCF "merged.vep.assembly = GRCh38\n";
+    print CVCF "EOF\n";
+ 
+ # 1. formatting germline wrapper output
+    print CVCF "F_VCF_in=".$sample_full_path."/merged.1.vcf\n";
+    print CVCF "     ".$run_script_path_py."pickCaller.py -i \${F_VCF_in} -o $sample_name -O $sample_full_path","\n";  
+    print CVCF "export JAVA_HOME=$java_dir\n";
+    print CVCF "export JAVA_OPTS=\"-Xmx10g\"\n";
+    print CVCF "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
+    print CVCF "java  \${JAVA_OPTS} -jar "."$picardexe FixVcfHeader I=\${VCFsingle} O=\${VCFsinglefix}\n";
+    print CVCF "$bgzip \${VCFsinglefix}","\n";
+    print CVCF "$tabix -p vcf \${VCFsinglefixgz}","\n";
+
+ #2, Filter VCFs:
+    ## STEP 2.1: Filter out raw results from germline variant calling, removing problematic wild type calls from pindel (0/0 genotype). ##
+    print CVCF "sample=\$(echo \${VCFsinglefixgz} | rev | cut -d'/' -f1 | rev | cut -d'.' -f1)","\n";
+    print CVCF "check=\$(echo \${VCFsinglefixgz} | rev | cut -d'/' -f1 | rev | cut -d'.' -f2)","\n";
+    print CVCF "if [[ \${check} == 'N' ]]; then","\n";
+    print CVCF "sample=\${sample}.N","\n";
+    print CVCF "elif [[ \${check} == 'T' ]]; then","\n";
+    print CVCF "sample=\${sample}.T","\n";
+    print CVCF "fi","\n";
+
+    print CVCF 'zgrep "^#" ${VCFsinglefixgz} > ${WT_filtered_VCF}',"\n";
+    print CVCF 'zgrep -v "^#" ${VCFsinglefixgz} | grep -v "0/0:" >> ${WT_filtered_VCF}',"\n";
+    print CVCF "$bgzip \${WT_filtered_VCF}","\n";
+
+
+    ## STEP 2.2: Filter raw results from germline variant calling based on allelic depth (keep variants with AD > 5 for the alternative allele). ##
+    print CVCF "$tabix -p vcf \${WT_filtered_VCF_gz}","\n";
+    print CVCF "     ".$run_script_path_py."apply_AD_filter.py -i \${WT_filtered_VCF_gz} -AD $AD_thres -O $sample_full_path","\n";
+    print CVCF "mv $sample_full_path"."/"."*.AD.$AD_thres.vcf \${AD_filtered_VCF}","\n"; 
+    print CVCF "$bgzip \${AD_filtered_VCF}","\n";
+    print CVCF "$tabix -p vcf \${AD_filtered_VCF_gz}","\n";
+
+    ## STEP 2.3: Filter out extremely long indels from pindel calls (this is done to remove long indels misscalled by pindel, which slow down next steps in the analysis).
+    print CVCF "     ".$run_script_path_py."filter_long_indels.py -i \${AD_filtered_VCF_gz} -O $sample_full_path","\n";
+    print CVCF "$bgzip \${indel_filtered_VCF}","\n";
+    print CVCF "$tabix -p vcf \${indel_filtered_VCF_gz}","\n";
+
+    ## STEP 2.4: Extract variants present in regions of interest (ROI) determined by the input BED file. ##
+    print CVCF "$vcftools --gzvcf \${AD_filtered_VCF_gz} $f_bed_v102 --keep-INFO-all --recode -c | bgzip -c > \${ROI_filtered_VCF}","\n";
+    print CVCF "$tabix -p vcf \${ROI_filtered_VCF}","\n";
+
+#3. Normalize, sort, and fix VCF header
+    ## STEP 3.1:     # needed to fix INFO field in header first
+    print CVCF "zcat \${ROI_filtered_VCF} | sed \'s/ID=MLEAC,Number=A/ID=MLEAC,Number=./g\' | sed \'s/ID=MLEAF,Number=A/ID=MLEAF,Number=./g\' | $bgzip -c > \${ROI_filtered_VCF_fixed}","\n";
+    print CVCF "$tabix -p vcf  \${ROI_filtered_VCF_fixed}","\n";
+    print CVCF "$bcftools norm -f $h38_REF --multiallelics - --check-ref e -Oz -o \${ROI_filtered_VCF_fixed_norm} \${ROI_filtered_VCF_fixed","\n";
+
+    ## STEP 3.2 remove wild type fields
+    print CVCF 'zgrep "^#" ${ROI_filtered_VCF_fixed_norm} > ${ROI_fixed_nWT}; zgrep -v "^#" ${ROI_filtered_VCF_fixed_norm} | grep -v "0/0" >> ${ROI_fixed_nWT}',"\n";
+    print CVCF "$bgzip \${ROI_fixed_nWT}","\n"; 
+    print CVCF "$tabix -p vcf \${ROI_fixed_nWT_gz}","\n";
+
+    ## STEP 3.3 sort VCFs
+    print CVCF "java \${JAVA_OPTS} -jar "."$picardexe SortVcf I=\${ROI_fixed_nWT_gz} O=\${ROI_fixed_nWT_sorted} SEQUENCE_DICTIONARY=$h38_REF_dict","\n";
+    print CVCF "$bgzip \${ROI_fixed_nWT_sorted}","\n"; 
+    print CVCF "$tabix -p vcf \${ROI_fixed_nWT_sorted_gz}","\n"; 
+#4. Do VEP annotation
+    print CVCF "cd \${RUNDIR}\n";
+    print CVCF "     ".$run_script_path."vep_annotator_v1.1_af.pl ./vep.merged.sorted.input >&./vep.merged.sorted.log\n";
+    print CVCF "$bgzip \${VEP102_sorted}","\n"; 
+    print CVCF "$tabix -p vcf \${VEP102_sorted_gz}","\n"; 
+#5. Prepare file for CharG 
+    print CVCF "     ".$run_script_path_py."format_vcf_for_CharGer.py -i \${VEP102_sorted_gz} -O $sample_full_path","\n";
+    print CVCF "$bgzip \${VEP102_sorted_fixed}","\n"; 
+    print CVCF "$tabix -p vcf \${VEP102_sorted_fixed_gz}","\n";
+    close CVCF;
 
     my $sh_file=$job_files_dir."/".$current_job_file;
     $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(ensemblorg/ensembl-vep:release_102.0)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com); 
+
 }
 
