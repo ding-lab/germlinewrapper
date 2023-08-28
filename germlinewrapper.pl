@@ -18,6 +18,7 @@ my $yellow = "\e[33m";
 my $green = "\e[32m";
 my $purple = "\e[35m";
 my $cyan = "\e[36m";
+my $blue = "\e[34m";
 my $normal = "\e[0m";
 #usage information
 
@@ -58,7 +59,8 @@ $cyan [8]  Generate final maf
 $cyan [9]  Do bam readcount
 $cyan [10] add readcount to maf file
 $cyan [11] Generate maf file with readcount
-$gray [12] Generate indvidual vcf file for running charger
+$blue [12] Generate indvidual vep annotated vcf file for running charger
+$gray [13] run charger
 $normal
 OUT
 
@@ -106,7 +108,7 @@ print "minvaf=",$min_vaf,"\n";
 print $group_name,"\n"; 
 print $compute_username, "\n"; 
 
-if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>12) {
+if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>13) {
       print $usage;
       exit;
    }
@@ -195,6 +197,11 @@ my $bgzip="/storage1/fs1/songcao/Active/Software/anaconda3/bin/bgzip";
 my $tabix="/storage1/fs1/songcao/Active/Software/anaconda3/bin/tabix";
 my $AD_thres=5; 
 my $f_bed_v102="/storage1/fs1/dinglab/Active/Projects/fernanda/Projects/PECGS/BED_files_ROI/gencode36_vep102/Homo_sapiens.GRCh38.102.allCDS.1based.2bpFlanks.withCHR.bed";
+my $f_inherit_list="/storage1/fs1/dinglab/Active/Projects/PanCan_Germline_CPTAC/Analysis/WES_based_analyses/ReferenceFiles/cancer_pred_genes_160genes_011321_curated_forCharGer.txt";
+my $f_pp2_list="/storage1/fs1/dinglab/Active/Projects/PanCan_Germline_CPTAC/Analysis/WES_based_analyses/ReferenceFiles/160cpgs.txt";
+my $f_lift_over="/storage1/fs1/dinglab/Active/Projects/fernanda/Projects/HTAN_BRCA/Software/CharGer-0.5.4/PanCanAtlasData/emptyRemoved_20160428_pathogenic_variants_HGVSg_VEP_grch38lifOver.vcf";
+my $f_cluster_r10="/storage1/fs1/dinglab/Active/Projects/PanCan_Germline_CPTAC/Analysis/WES_based_analyses/15.HotSpot3D/CPTAC_TCGA_MC3/cptac_mc3_combined_noHypers_sorted.maf.3D_Proximity.pairwise.recurrence.l0.ad10.r10.clusters";
+my $f_clinvar="/storage1/fs1/dinglab/Active/Projects/fernanda/Databases/ClinVar/20190815_release/b38/single/clinvar_alleles.single.b38.tsv.gz";
 
 #my $vepcmd="/storage1/fs1/songcao/Active/Database/hg38_database/vep/ensembl-tools-release-85/scripts/variant_effect_predictor/variant_effect_predictor.pl";
 
@@ -208,7 +215,7 @@ opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
 close DH;
 
-if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number == 12) {
+if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number == 12 || $step_number==13) {
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
         if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
@@ -247,6 +254,8 @@ if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number
                                     &bsub_addrc(1);
                 }elsif ($step_number==12) {
                                     &bsub_generate_charg_vcf(1);
+                }elsif ($step_number==13) {
+                                    &bsub_run_charg(1);
                 }
 		}
 		}
@@ -1095,3 +1104,38 @@ sub bsub_generate_charg_vcf{
 
 }
 
+sub bsub_run_charg{
+  
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j13_runcharg.".$sample_name.".sh";
+
+
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
+    open(CHARG, ">$job_files_dir/$current_job_file") or die $!;
+    print CHARG "#!/bin/bash\n";
+    print CHARG "RUNDIR=".$sample_full_path."\n";
+    print CHARG "VEP102_sorted_fixed_gz=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.infoFixed.vcf.gz","\n";
+    print CHARG "CHARG_OUT=".$sample_full_path."/".$sample_name.".charged.tsv","\n";
+    print CHARG "charger --include-vcf-details -f \${VEP102_sorted_fixed_gz} -o \${CHARG_OUT} -O -D --inheritanceGeneList $f_inherit_list --PP2GeneList $f_pp2_list -z $f_lift_over -H $f_cluster_r10 -l --mac-clinvar-tsv $f_clinvar --rare-threshold 0.0005","\n";
+    close CHARG;
+
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(estorrs/pecgs-charger)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system ($bsub_com); 
+
+}

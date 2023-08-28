@@ -38,7 +38,6 @@ ref the human reference: GDC HG38: /storage1/fs1/songcao/Active/Database/hg38_da
 q which queue for submitting job; research-hpc, ding-lab, long (default)
 
 run_folder = full path of the folder holding files for this sequence run
-
 step_number run this pipeline step by step. (running the whole pipeline if step number is 0)
 
 [1]  Run gatk
@@ -63,7 +62,9 @@ step_number run this pipeline step by step. (running the whole pipeline if step 
 
 [11] Generate maf file with readcount
 
-[12] Generate indvidual vcf file for running charger
+[12] Generate indvidual vep annotated vcf file for running charger
+
+[13] Run charger
 
 ### see work_log_test for how to run jobs in compute1 
 
