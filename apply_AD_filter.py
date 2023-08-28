@@ -31,20 +31,14 @@ def argument_parser():
     # add arguments
     parser.add_argument("-i", "--inputVCF", required=True, help="input VCF file; gzip compressed")
     parser.add_argument("-AD", "--ADthreshold", required=True, help="desired AD threshold; any variants with AD for the variant allele smaller than this threshold will be excluded")
-    parser.add_argument("-O", "--outputDirectory", default=os.getcwd(), help="directory to write output files to")
+    parser.add_argument("-o", "--outputfile", required=True, help="output file")
 
     args = vars(parser.parse_args())
     inputVCF = args["inputVCF"]
     ADthreshold = args["ADthreshold"]
-    outputDirectory = args["outputDirectory"]
+    outputfile = args["outputfile"]
 
-    if outputDirectory[-1] != '/':
-        outputDirectory = outputDirectory + '/'
-
-    if not os.path.exists(outputDirectory):
-        os.makedirs(outputDirectory)
-
-    return inputVCF, ADthreshold, outputDirectory
+    return inputVCF, ADthreshold, outputfile
 
 
 ###############
@@ -52,7 +46,7 @@ def argument_parser():
 ###############
 
 def main():
-    inputVCF, ADthreshold, outputDirectory = argument_parser()
+    inputVCF, ADthreshold, outFile = argument_parser()
     AD_thres = float(ADthreshold)
 
     try:
@@ -60,9 +54,9 @@ def main():
     except IOError:
         print("VCF file does not exist!")
 
-    outFile_suffix = ".AD."+str(int(AD_thres))+".vcf"
-    inputFile_basename = inputVCF.split('/')[-1]
-    outFile = outputDirectory+inputFile_basename.replace(".vcf.gz",outFile_suffix)
+   # outFile_suffix = ".AD."+str(int(AD_thres))+".vcf"
+   #inputFile_basename = inputVCF.split('/')[-1]
+   #outFile = outputDirectory+inputFile_basename.replace(".vcf.gz",outFile_suffix)
     outF = open(outFile, "w")
 
     all_var = 0 # will count total number of variants in input file

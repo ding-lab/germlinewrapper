@@ -58,7 +58,7 @@ $cyan [8]  Generate final maf
 $cyan [9]  Do bam readcount
 $cyan [10] add readcount to maf file
 $cyan [11] Generate maf file with readcount
-$gray [12] Generate indvidual vcf file with population allele freqquency
+$gray [12] Generate indvidual vcf file for running charger
 $normal
 OUT
 
@@ -172,6 +172,8 @@ my $sample_name = "";
 my $h38_REF_bai=$h38_REF.".fai";
 my $h38_REF_dict=$h38_REF.".dict"; 
 
+$h38_REF_dict =~ s/\.fa\.dict$/\.dict/g;
+
 my $bcftools="/storage1/fs1/dinglab/Active/Projects/litingz/software/conda/bin/bcftools";
 my $vcftools="/storage1/fs1/songcao/Active/Software/anaconda3/bin/vcftools";
 my $bamrc="/storage1/fs1/songcao/Active/Software/bam-readcount/0.7.4/bam-readcount";
@@ -187,6 +189,7 @@ my $PINDEL_DIR="/storage1/fs1/songcao/Active/Software/anaconda3/bin";
 my $gatkexe3="/storage1/fs1/songcao/Active/Software/gatk/3.7/GenomeAnalysisTK.jar";
 my $gatkexe4="gatk";
 my $picardexe="/storage1/fs1/songcao/Active/Software/picard/picard.jar";
+my $picard2203="/storage1/fs1/songcao/Active/Software/picard-2.20.3-0/bin/picard";
 my $java_dir="/storage1/fs1/songcao/Active/Software/jre1.8.0_121";
 my $bgzip="/storage1/fs1/songcao/Active/Software/anaconda3/bin/bgzip";
 my $tabix="/storage1/fs1/songcao/Active/Software/anaconda3/bin/tabix";
@@ -971,7 +974,7 @@ sub bsub_generate_charg_vcf{
     }
 
 
-``    $current_job_file = "j12_chargvcf.".$sample_name.".sh";
+    $current_job_file = "j12_chargvcf.".$sample_name.".sh";
 
 
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
@@ -1022,9 +1025,9 @@ sub bsub_generate_charg_vcf{
     print CVCF "export JAVA_HOME=$java_dir\n";
     print CVCF "export JAVA_OPTS=\"-Xmx10g\"\n";
     print CVCF "export PATH=\${JAVA_HOME}/bin:\${PATH}\n";
-    print CVCF "java  \${JAVA_OPTS} -jar "."$picardexe FixVcfHeader I=\${VCFsingle} O=\${VCFsinglefix}\n";
-    print CVCF "$bgzip \${VCFsinglefix}","\n";
-    print CVCF "$tabix -p vcf \${VCFsinglefixgz}","\n";
+    print CVCF "$picard2203 FixVcfHeader I=\${VCFsingle} O=\${VCFsinglefix}\n";
+    print CVCF "$bgzip -f \${VCFsinglefix}","\n";
+    print CVCF "$tabix -f -p vcf \${VCFsinglefixgz}","\n";
 
  #2, Filter VCFs:
     ## STEP 2.1: Filter out raw results from germline variant calling, removing problematic wild type calls from pindel (0/0 genotype). ##
@@ -1038,49 +1041,51 @@ sub bsub_generate_charg_vcf{
 
     print CVCF 'zgrep "^#" ${VCFsinglefixgz} > ${WT_filtered_VCF}',"\n";
     print CVCF 'zgrep -v "^#" ${VCFsinglefixgz} | grep -v "0/0:" >> ${WT_filtered_VCF}',"\n";
-    print CVCF "$bgzip \${WT_filtered_VCF}","\n";
+    print CVCF "$bgzip -f \${WT_filtered_VCF}","\n";
 
 
     ## STEP 2.2: Filter raw results from germline variant calling based on allelic depth (keep variants with AD > 5 for the alternative allele). ##
-    print CVCF "$tabix -p vcf \${WT_filtered_VCF_gz}","\n";
-    print CVCF "     ".$run_script_path_py."apply_AD_filter.py -i \${WT_filtered_VCF_gz} -AD $AD_thres -O $sample_full_path","\n";
-    print CVCF "mv $sample_full_path"."/"."*.AD.$AD_thres.vcf \${AD_filtered_VCF}","\n"; 
-    print CVCF "$bgzip \${AD_filtered_VCF}","\n";
-    print CVCF "$tabix -p vcf \${AD_filtered_VCF_gz}","\n";
+    print CVCF "$tabix -f -p vcf \${WT_filtered_VCF_gz}","\n";
+    print CVCF "     ".$run_script_path_py."apply_AD_filter.py -i \${WT_filtered_VCF_gz} -AD $AD_thres -o \${AD_filtered_VCF}","\n";
+    #print CVCF "mv $sample_full_path"."/"."*.AD.$AD_thres.vcf \${AD_filtered_VCF}","\n"; 
+    print CVCF "$bgzip -f \${AD_filtered_VCF}","\n";
+    print CVCF "$tabix -f -p vcf \${AD_filtered_VCF_gz}","\n";
 
     ## STEP 2.3: Filter out extremely long indels from pindel calls (this is done to remove long indels misscalled by pindel, which slow down next steps in the analysis).
     print CVCF "     ".$run_script_path_py."filter_long_indels.py -i \${AD_filtered_VCF_gz} -O $sample_full_path","\n";
-    print CVCF "$bgzip \${indel_filtered_VCF}","\n";
-    print CVCF "$tabix -p vcf \${indel_filtered_VCF_gz}","\n";
+    print CVCF "$bgzip -f \${indel_filtered_VCF}","\n";
+    print CVCF "$tabix -f -p vcf \${indel_filtered_VCF_gz}","\n";
 
     ## STEP 2.4: Extract variants present in regions of interest (ROI) determined by the input BED file. ##
-    print CVCF "$vcftools --gzvcf \${AD_filtered_VCF_gz} $f_bed_v102 --keep-INFO-all --recode -c | bgzip -c > \${ROI_filtered_VCF}","\n";
-    print CVCF "$tabix -p vcf \${ROI_filtered_VCF}","\n";
+    print CVCF "$vcftools --gzvcf \${AD_filtered_VCF_gz} --bed $f_bed_v102 --keep-INFO-all --recode -c | bgzip -c > \${ROI_filtered_VCF}","\n";
+    print CVCF "$tabix -f -p vcf \${ROI_filtered_VCF}","\n";
 
 #3. Normalize, sort, and fix VCF header
     ## STEP 3.1:     # needed to fix INFO field in header first
     print CVCF "zcat \${ROI_filtered_VCF} | sed \'s/ID=MLEAC,Number=A/ID=MLEAC,Number=./g\' | sed \'s/ID=MLEAF,Number=A/ID=MLEAF,Number=./g\' | $bgzip -c > \${ROI_filtered_VCF_fixed}","\n";
-    print CVCF "$tabix -p vcf  \${ROI_filtered_VCF_fixed}","\n";
-    print CVCF "$bcftools norm -f $h38_REF --multiallelics - --check-ref e -Oz -o \${ROI_filtered_VCF_fixed_norm} \${ROI_filtered_VCF_fixed","\n";
+    print CVCF "$tabix -f -p vcf  \${ROI_filtered_VCF_fixed}","\n";
+    print CVCF "$bcftools norm -f $h38_REF --multiallelics - --check-ref e -Oz -o \${ROI_filtered_VCF_fixed_norm} \${ROI_filtered_VCF_fixed}","\n";
 
     ## STEP 3.2 remove wild type fields
     print CVCF 'zgrep "^#" ${ROI_filtered_VCF_fixed_norm} > ${ROI_fixed_nWT}; zgrep -v "^#" ${ROI_filtered_VCF_fixed_norm} | grep -v "0/0" >> ${ROI_fixed_nWT}',"\n";
-    print CVCF "$bgzip \${ROI_fixed_nWT}","\n"; 
-    print CVCF "$tabix -p vcf \${ROI_fixed_nWT_gz}","\n";
+    print CVCF "$bgzip -f \${ROI_fixed_nWT}","\n"; 
+    print CVCF "$tabix -f -p vcf \${ROI_fixed_nWT_gz}","\n";
 
     ## STEP 3.3 sort VCFs
-    print CVCF "java \${JAVA_OPTS} -jar "."$picardexe SortVcf I=\${ROI_fixed_nWT_gz} O=\${ROI_fixed_nWT_sorted} SEQUENCE_DICTIONARY=$h38_REF_dict","\n";
-    print CVCF "$bgzip \${ROI_fixed_nWT_sorted}","\n"; 
-    print CVCF "$tabix -p vcf \${ROI_fixed_nWT_sorted_gz}","\n"; 
+    print CVCF "$picard2203 SortVcf I=\${ROI_fixed_nWT_gz} O=\${ROI_fixed_nWT_sorted} SEQUENCE_DICTIONARY=$h38_REF_dict","\n";
+    print CVCF "$bgzip -f -c \${ROI_fixed_nWT_sorted} > \${ROI_fixed_nWT_sorted_gz}","\n"; 
+    print CVCF "$tabix -f -p vcf \${ROI_fixed_nWT_sorted_gz}","\n"; 
+
 #4. Do VEP annotation
     print CVCF "cd \${RUNDIR}\n";
+    print CVCF "rm ./vep.merged.sorted.log","\n";
     print CVCF "     ".$run_script_path."vep_annotator_v1.1_af.pl ./vep.merged.sorted.input >&./vep.merged.sorted.log\n";
-    print CVCF "$bgzip \${VEP102_sorted}","\n"; 
-    print CVCF "$tabix -p vcf \${VEP102_sorted_gz}","\n"; 
+    print CVCF "$bgzip -f \${VEP102_sorted}","\n"; 
+    print CVCF "$tabix -f -p vcf \${VEP102_sorted_gz}","\n"; 
 #5. Prepare file for CharG 
     print CVCF "     ".$run_script_path_py."format_vcf_for_CharGer.py -i \${VEP102_sorted_gz} -O $sample_full_path","\n";
-    print CVCF "$bgzip \${VEP102_sorted_fixed}","\n"; 
-    print CVCF "$tabix -p vcf \${VEP102_sorted_fixed_gz}","\n";
+    print CVCF "$bgzip -f \${VEP102_sorted_fixed}","\n"; 
+    print CVCF "$tabix -f -p vcf \${VEP102_sorted_fixed_gz}","\n";
     close CVCF;
 
     my $sh_file=$job_files_dir."/".$current_job_file;

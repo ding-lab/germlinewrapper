@@ -1,4 +1,4 @@
-# germlinewrapper V2.2, compute1
+# germlinewrapper v2.3, compute1
 
 for HG38 reference
 
@@ -56,6 +56,14 @@ step_number run this pipeline step by step. (running the whole pipeline if step 
 [7]  VCF2MAF
 
 [8]  Generate final maf
+
+[9]  Do bam readcount
+
+[10] add readcount to maf file
+
+[11] Generate maf file with readcount
+
+[12] Generate indvidual vcf file for running charger
 
 ### see work_log_test for how to run jobs in compute1 
 
