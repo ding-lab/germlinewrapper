@@ -176,7 +176,7 @@ my $h38_REF_dict=$h38_REF.".dict";
 
 $h38_REF_dict =~ s/\.fa\.dict$/\.dict/g;
 
-my $bcftools="/storage1/fs1/dinglab/Active/Projects/WG-liting/software/conda/bin/bcftools";
+my $bcftools="/storage1/fs1/dinglab/Active/Projects/litingz/software/conda/bin/bcftools";
 my $vcftools="/storage1/fs1/songcao/Active/Software/anaconda3/bin/vcftools";
 my $bamrc="/storage1/fs1/songcao/Active/Software/bam-readcount/0.7.4/bam-readcount";
 my $gatk="/storage1/fs1/songcao/Active/Software/GenomeAnalysis/GenomeAnalysisTK.jar";
