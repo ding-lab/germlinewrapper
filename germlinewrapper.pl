@@ -59,8 +59,9 @@ $cyan [8]  Generate final maf
 $cyan [9]  Do bam readcount
 $cyan [10] add readcount to maf file
 $cyan [11] Generate maf file with readcount
-$blue [12] Generate indvidual vep annotated vcf file for running charger
-$gray [13] run charger
+$blue [12] Generate vcf file for running charger
+$blue [13] run vep for above vcf file
+$gray [14] run charger
 $normal
 OUT
 
@@ -215,7 +216,7 @@ opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
 close DH;
 
-if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number == 12 || $step_number==13) {
+if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number == 12 || $step_number==13 ||  $step_number==14) {
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
         if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
@@ -255,6 +256,8 @@ if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number
                 }elsif ($step_number==12) {
                                     &bsub_generate_charg_vcf(1);
                 }elsif ($step_number==13) {
+                                    &bsub_run_vep2(1);
+                }elsif ($step_number==14) {
                                     &bsub_run_charg(1);
                 }
 		}
@@ -1086,22 +1089,72 @@ sub bsub_generate_charg_vcf{
     print CVCF "$tabix -f -p vcf \${ROI_fixed_nWT_sorted_gz}","\n"; 
 
 #4. Do VEP annotation
-    print CVCF "cd \${RUNDIR}\n";
-    print CVCF "rm ./vep.merged.sorted.log","\n";
-    print CVCF "     ".$run_script_path."vep_annotator_v1.1_af.pl ./vep.merged.sorted.input >&./vep.merged.sorted.log\n";
-    print CVCF "$bgzip -f \${VEP102_sorted}","\n"; 
-    print CVCF "$tabix -f -p vcf \${VEP102_sorted_gz}","\n"; 
+    # print CVCF "cd \${RUNDIR}\n";
+    # print CVCF "rm ./vep.merged.sorted.log","\n";
+    # print CVCF "     ".$run_script_path."vep_annotator_v1.1_af.pl ./vep.merged.sorted.input >&./vep.merged.sorted.log\n";
+    # print CVCF "$bgzip -f \${VEP102_sorted}","\n"; 
+    # print CVCF "$tabix -f -p vcf \${VEP102_sorted_gz}","\n"; 
 #5. Prepare file for CharG 
-    print CVCF "     ".$run_script_path_py."format_vcf_for_CharGer.py -i \${VEP102_sorted_gz} -O $sample_full_path","\n";
-    print CVCF "$bgzip -f \${VEP102_sorted_fixed}","\n"; 
-    print CVCF "$tabix -f -p vcf \${VEP102_sorted_fixed_gz}","\n";
-    close CVCF;
+    # print CVCF "     ".$run_script_path_py."format_vcf_for_CharGer.py -i \${VEP102_sorted_gz} -O $sample_full_path","\n";
+    # print CVCF "$bgzip -f \${VEP102_sorted_fixed}","\n"; 
+    # print CVCF "$tabix -f -p vcf \${VEP102_sorted_fixed_gz}","\n";
+    # close CVCF;
 
     my $sh_file=$job_files_dir."/".$current_job_file;
     $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(ensemblorg/ensembl-vep:release_102.0)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com); 
 
+}
+
+#bsub -oo ${LOGS}${OUT_BASENAME}.chr${i}.VEPannotation.cache102.gencode36.log -M 64000000 -R ‘select[mem>64000] rusage[mem=64000]’ -q dinglab -G compute-dinglab -a ‘docker(fernandamrod/vep:latest)’ /opt/vep/src/ensembl-vep/vep --format vcf --vcf --input_file ${OUT_DIR}${OUT_BASENAME}.chr${i}.vcf.gz --output_file ${OUT_DIR}${OUT_BASENAME}.chr${i}.vep102.gencode36.vcf  --everything --af_exac --cache --dir_cache /storage1/fs1/songcao/Active/Database/hg38_database/vep/v102/ --cache_version 102 --fasta /storage1/fs1/dinglab/Active/Projects/fernanda/References/GRCh38.d1.vd1/GRCh38.d1.vd1.fa --force_overwrite --assembly GRCh38 --offline --buffer_size 500
+
+#header annotation: 
+## #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  PE0125U1-Yp1
+sub bsub_run_vep2 {
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+
+    $current_job_file = "j13_vep2.".$sample_name.".sh";
+
+
+    my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err=$lsf_file_dir."/".$current_job_file.".err";
+    if(-e $lsf_out)
+    {
+    `rm $lsf_out`;
+    `rm $lsf_err`;
+    `rm $current_job_file`;
+    }
+
+
+    open(VEP2, ">$job_files_dir/$current_job_file") or die $!;
+    print VEP2 "#!/bin/bash\n";
+    print VEP2 "RUNDIR=".$sample_full_path."\n";
+    print VEP2 "ROI_fixed_nWT_sorted=".$sample_full_path."/".$sample_name.".sorted.charg.vcf.gz","\n"; 
+    print VEP2 "ROI_fixed_nWT_sorted=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.vcf\n";
+    print VEP2 "VEP102_sorted=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.vcf","\n";
+    print VEP2 "VEP102_sorted_gz=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.vcf.gz","\n";
+    print VEP2 "VEP102_sorted_fixed=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.infoFixed.vcf","\n";
+    print VEP2 "VEP102_sorted_fixed_gz=".$sample_full_path."/".$sample_name.".sorted.charg.vep102.infoFixed.vcf.gz","\n";
+ #1. Do VEP annotation
+    print VEP2 "/opt/vep/src/ensembl-vep/vep --format vcf --vcf --input_file \${ROI_fixed_nWT_sorted} --output_file \${VEP102_sorted} --everything --af_exac --cache --dir_cache $vepcache --cache_version 102 --fasta $h38_REF --force_overwrite --assembly GRCh38 --offline --buffer_size 500","\n";
+#2. Prepare file for CharG 
+    print VEP2 "$bgzip -f \${VEP102_sorted}","\n"; 
+    print VEP2 "$tabix -f -p vcf \${VEP102_sorted_gz}","\n"; 
+    print VEP2 "     ".$run_script_path_py."format_vcf_for_CharGer.py -i \${VEP102_sorted_gz} -O $sample_full_path","\n";
+    print VEP2 "$bgzip -f \${VEP102_sorted_fixed}","\n"; 
+    print VEP2 "$tabix -f -p vcf \${VEP102_sorted_fixed_gz}","\n";
+    close VEP2;
+    my $sh_file=$job_files_dir."/".$current_job_file;
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(fernandamrod/vep:latest)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system ($bsub_com); 
 }
 
 sub bsub_run_charg{
@@ -1113,7 +1166,7 @@ sub bsub_run_charg{
         $hold_job_file = $current_job_file;
     }
 
-    $current_job_file = "j13_runcharg.".$sample_name.".sh";
+    $current_job_file = "j14_runcharg.".$sample_name.".sh";
 
 
     my $lsf_out=$lsf_file_dir."/".$current_job_file.".out";

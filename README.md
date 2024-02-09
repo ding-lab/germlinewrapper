@@ -1,4 +1,4 @@
-# germlinewrapper v2.3, compute1
+# germlinewrapper v2.4, compute1
 
 for HG38 reference
 
@@ -11,9 +11,9 @@ Detect germline variants from normal sample
 GermineWrapper pipeline is a fully automated and modular software package designed for detection of germline variants from normal exome data. It works on LSF job scheduler. Multiple standard variant callings are included in the pipeline such as varscan, gatk and pindel.
 
 
-Improvements compared to version 2.1:
+Improvements compared to version 2.3:
 
-Add AF to the maf
+Implement Fernanda VEP annotation
 
 If there is no readcount from tumor bam for a germline variant, assign 0 to the readcount to tumor 
  
