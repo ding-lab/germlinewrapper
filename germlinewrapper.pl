@@ -1147,11 +1147,11 @@ sub bsub_run_vep2 {
  #1. Do VEP annotation
     print VEP2 "/opt/vep/src/ensembl-vep/vep --format vcf --vcf --input_file \${ROI_fixed_nWT_sorted_gz} --output_file \${VEP102_sorted} --everything --af_exac --cache --dir_cache $vepcache --cache_version 102 --fasta $h38_REF --force_overwrite --assembly GRCh38 --offline --buffer_size 500","\n";
 #2. Prepare file for CharG 
-    # print VEP2 "$bgzip -f \${VEP102_sorted}","\n"; 
-    # print VEP2 "$tabix -f -p vcf \${VEP102_sorted_gz}","\n"; 
-    # print VEP2 "     ".$run_script_path_py."format_vcf_for_CharGer.py -i \${VEP102_sorted_gz} -O $sample_full_path","\n";
-    # print VEP2 "$bgzip -f \${VEP102_sorted_fixed}","\n"; 
-    # print VEP2 "$tabix -f -p vcf \${VEP102_sorted_fixed_gz}","\n";
+    print VEP2 "$bgzip -f \${VEP102_sorted}","\n"; 
+    print VEP2 "$tabix -f -p vcf \${VEP102_sorted_gz}","\n"; 
+    print VEP2 "     ".$run_script_path_py."format_vcf_for_CharGer.py -i \${VEP102_sorted_gz} -O $sample_full_path","\n";
+    print VEP2 "$bgzip -f \${VEP102_sorted_fixed}","\n"; 
+    print VEP2 "$tabix -f -p vcf \${VEP102_sorted_fixed_gz}","\n";
     close VEP2;
     my $sh_file=$job_files_dir."/".$current_job_file;
     $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>100000] rusage[mem=100000]\" -M 100000000 -a \'docker(fernandamrod/vep:latest)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
