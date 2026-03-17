@@ -109,7 +109,7 @@ print "minvaf=",$min_vaf,"\n";
 print $group_name,"\n"; 
 print $compute_username, "\n"; 
 
-if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>13) {
+if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>14) {
       print $usage;
       exit;
    }
@@ -969,7 +969,7 @@ sub bsub_rc{
 
     my $sh_file=$job_files_dir."/".$current_job_file;
 
-    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>30000] rusage[mem=30000]\" -M 30000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>50000] rusage[mem=50000]\" -M 50000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
     print $bsub_com;
     system ($bsub_com);
 
@@ -1158,6 +1158,30 @@ sub bsub_run_vep2 {
     print $bsub_com;
     system ($bsub_com); 
 }
+
+# ##-- Run CharGer --##
+
+# # -- CharGer version:
+# #        - release v0.5.4
+# #        - latest commit at installation time: 6918465
+
+# # -- CharGer was run using the latest ClinVar release (08-15-2019) formatted with scripts from MacArthur lab.
+# # -- ClinVar file can be downloaded from here: https://github.com/fernanda-rodrigues/ClinVar/raw/20190815_release/output/b38/single/clinvar_alleles.single.b38.tsv.gz
+# # -- USING NEW HOTSPOT3D CLUSTERS FILE (CPTAC + TCGA MC3)
+
+# # -- Other dependency files used are the same as used by Huang et al. 2018, but were lifted over to b38 coordinates using CrossMap.
+
+# mkdir -p Analysis/CharGer/
+# mkdir -p Analysis/Logs/CharGer/
+
+# export LSF_DOCKER_VOLUMES="/storage1/fs1/dinglab:/storage1/fs1/dinglab /scratch1/fs1/dinglab:/scratch1/fs1/dinglab /home/fernanda:/home/fernanda"
+# export LSF_DOCKER_PRESERVE_ENVIRONMENT=false
+# export PATH=/miniconda/envs/charger/bin:$PATH
+
+
+# while read case; do
+# 	bsub -oo Analysis/Bulk_level_analyses/Germline/data_freeze_v1.0/Logs/CharGer/${case}.charger.log -M 60000000 -R 'select[mem>60000] rusage[mem=60000]' -q general -G compute-dinglab -a 'docker(estorrs/pecgs-charger:0.0.1)' charger --include-vcf-details -f ${case}.sorted.charg.vep102.infoFixed.vcf.gz -o Analysis/CharGer/${case}.charged.tsv -O -D --inheritanceGeneList /storage1/fs1/dinglab/Active/Projects/PanCan_Germline_CPTAC/Analysis/WES_based_analyses/ReferenceFiles/cancer_pred_genes_160genes_011321_curated_forCharGer.txt --PP2GeneList /storage1/fs1/dinglab/Active/Projects/PanCan_Germline_CPTAC/Analysis/WES_based_analyses/ReferenceFiles/160cpgs.txt -z /storage1/fs1/dinglab/Active/Projects/fernanda/Projects/HTAN_BRCA/Software/CharGer-0.5.4/PanCanAtlasData/emptyRemoved_20160428_pathogenic_variants_HGVSg_VEP_grch38lifOver.vcf -H /storage1/fs1/dinglab/Active/Projects/PanCan_Germline_CPTAC/Analysis/WES_based_analyses/15.HotSpot3D/CPTAC_TCGA_MC3/cptac_mc3_combined_noHypers_sorted.maf.3D_Proximity.pairwise.recurrence.l0.ad10.r10.clusters -l --mac-clinvar-tsv /storage1/fs1/dinglab/Active/Projects/fernanda/Databases/ClinVar/20190815_release/b38/single/clinvar_alleles.single.b38.tsv.gz --rare-threshold 0.0005;
+# done < Data/Data_freeze_v1.0/tumor_normal_caseIDs_data_freeze_v1.0.txt
 
 sub bsub_run_charg{
   
