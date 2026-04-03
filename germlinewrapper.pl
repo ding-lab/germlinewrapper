@@ -11,58 +11,61 @@ use warnings;
 #use POSIX;
 use Getopt::Long;
 my $version = 2.4;
-#color code
-my $red = "\e[31m";
-my $gray = "\e[37m";
-my $yellow = "\e[33m";
-my $green = "\e[32m";
-my $purple = "\e[35m";
-my $cyan = "\e[36m";
-my $blue = "\e[34m";
-my $normal = "\e[0m";
-#usage information
 
+# color code
+my $red     = "\e[1;31m";
+my $orange  = "\e[1;33m";
+my $yellow  = "\e[0;33m";
+my $green   = "\e[1;32m";
+my $cyan    = "\e[1;36m";
+my $blue    = "\e[1;34m";
+my $purple  = "\e[1;35m";
+my $gray    = "\e[0;37m";
+my $normal  = "\e[0m";
+
+# usage information
 (my $usage = <<OUT) =~ s/\t+//g;
-This script will process germline callings. 
+This script will process germline callings.
 Pipeline version: $version
 
-$yellow 
-
-Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --minvaf --q
-
+$orange
+Usage: perl $0 --srg --step --sre --rdir --ref --log --groupname --users --minvaf --q
 $normal
 
 <rdir> = full path of the folder holding files for this sequence run (user must provide)
 <srg> = bam having read group or not: 1, yes and 0, no (default 1)
 <groupname> = job group name
 <users> = user name for job group
-<log> = full path of the folder for saving log file; usually upper folder of rdir 
-<sre> = re-run: 1, yes and 0, no  (default 0)
+<log> = full path of the folder for saving log file; usually upper folder of rdir
+<sre> = re-run: 1, yes and 0, no (default 0)
 <minvaf> = minvaf for germline variant, and default 0.2
 <step> run this pipeline step by step. (user must provide)
-<ref> the human reference: 
+<ref> the human reference:
 <q> which queue for submitting job; research-hpc, ding-lab, long (default)
 
-GDC HG38: /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa 
+GDC HG38: /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa
 
 <run_folder> = full path of the folder holding files for this sequence run
 <step_number> run this pipeline step by step. (running the whole pipeline if step number is 0)
 
-$red [1]  Run gatk
-$red [2]  Run varscan
-$red [3]  Run pindel
-$yellow [4]  Parse pindel
-$yellow [5]  filter vcf
-$purple [6]  Merge calls
-$green [7]  VCF2MAF
-$cyan [8]  Generate final maf
-$cyan [9]  Do bam readcount
-$cyan [10] add readcount to maf file
-$cyan [11] Generate maf file with readcount
-$blue [12] Generate vcf file for running charger
-$blue [13] run vep for above vcf file
-$gray [14] run charger
-$normal
+${red}[1]  Run gatk${normal}
+${red}[2]  Run varscan${normal}
+${red}[3]  Run pindel${normal}
+${yellow}[4]  Parse pindel${normal}
+${yellow}[5]  filter vcf${normal}
+${purple}[6]  Merge calls${normal}
+${green}[7]  VCF2MAF${normal}
+${cyan}[8]  Generate final maf${normal}
+${cyan}[9]  Do bam readcount${normal}
+${cyan}[10] add readcount to maf file${normal}
+${cyan}[11] Generate maf file with readcount${normal}
+${blue}[12] Generate vcf file for running charger${normal}
+${blue}[13] run vep for above vcf file${normal}
+${gray}[14] run charger${normal}
+${gray}[15] postprocess charger results${normal}
+${gray}[16] add rc to the charger results and generate IGV session file${normal}
+${orange}[17] combine charged results and generate final PECGS report${normal}
+${orange}[18] generate IGV shell scripts for manual review${normal}
 OUT
 
 #die $usage unless @ARGV == 2;
@@ -90,6 +93,7 @@ my $chr_status=0;
 my $compute_username="";
 my $group_name="";
 my $min_vaf=0.2;
+my $cancer = "";
 
 my $status = &GetOptions (
       "step=i" => \$step_number,
@@ -102,6 +106,7 @@ my $status = &GetOptions (
       "ref=s"  => \$h38_REF,
       "log=s"  => \$log_dir,
       "q=s" => \$q_name,
+      "cancer=s" => \$cancer,
       "help" => \$help,
     );
 
@@ -109,10 +114,15 @@ print "minvaf=",$min_vaf,"\n";
 print $group_name,"\n"; 
 print $compute_username, "\n"; 
 
-if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>14) {
+if ($help || $run_dir eq "" || $log_dir eq ""  || $group_name eq "" || $compute_username eq "" || $step_number<=0 || $step_number>18) {
       print $usage;
       exit;
    }
+
+if ($step_number == 15 && $cancer eq "") {
+      die "Error: --cancer is required for step 15\n";
+}
+
 
 print "run dir=",$run_dir,"\n";
 print "step num=",$step_number,"\n";
@@ -216,7 +226,7 @@ opendir(DH, $run_dir) or die "Cannot open dir $run_dir: $!\n";
 my @sample_dir_list = readdir DH;
 close DH;
 
-if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number == 12 || $step_number==13 ||  $step_number==14) {
+if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number == 12 || $step_number==13 ||  $step_number==14 || $step_number==15 || $step_number==16) {
     for (my $i=0;$i<@sample_dir_list;$i++) {#use the for loop instead. the foreach loop has some problem to pass the global variable $sample_name to the sub functions
         $sample_name = $sample_dir_list[$i];
         if (!($sample_name =~ /\./ || $sample_name=~/worklog/)) {
@@ -259,11 +269,17 @@ if ($step_number < 8  || $step_number == 9 || $step_number == 10 || $step_number
                                     &bsub_run_vep2(1);
                 }elsif ($step_number==14) {
                                     &bsub_run_charg(1);
+                }elsif ($step_number==15) {
+                                    &bsub_post_charg(1);
+                }elsif ($step_number==16) {
+                    &bsub_charg_rc_igvsh(1);
                 }
 		}
 		}
 		}
-	}
+}
+
+
 
 if($step_number==8)
     {
@@ -336,6 +352,57 @@ if($step_number==11)
     system ($bsub_com);
 
  }
+
+if($step_number==17)
+{
+    print $yellow, "Running combine step and submitting final report job ....",$normal, "\n";
+
+    my $dataset_name = (split(/\//, $run_dir))[-1];
+    my $out_file = $run_dir."/".$dataset_name.".charged2vcf.filtered.af0.0005.withrc.tsv";
+
+    #  Run Python combine step locally (NOT via bsub)
+    my $combine_cmd = "python ".$script_dir."/combine_germline_report.py -i $run_dir -o $out_file";
+    print $combine_cmd,"\n";
+    system($combine_cmd) == 0 or die "Failed: $combine_cmd\n";
+
+    # -----------------------------
+    # Now submit R job via bsub
+    # -----------------------------
+    $hold_job_file = $current_job_file;
+    $current_job_file = "j17_final_report_".$working_name.".sh";
+
+    my $lsf_out = $lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err = $lsf_file_dir."/".$current_job_file.".err";
+
+    if(-e $lsf_out)
+    {
+        `rm $lsf_out`;
+        `rm $lsf_err`;
+        `rm $job_files_dir/$current_job_file`;
+    }
+
+    open(STEP17, ">$job_files_dir/$current_job_file") or die $!;
+    print STEP17 "#!/bin/bash\n";
+    print STEP17 "RUN_DIR=".$run_dir."\n";
+    print STEP17 "OUT_FILE=".$out_file."\n";
+    print STEP17 "Rscript ".$script_dir."/prep4manualreview_PECGS.R -w \${RUN_DIR} -d $dataset_name -r TN -c \${OUT_FILE}\n";
+    close STEP17;
+
+    my $sh_file = $job_files_dir."/".$current_job_file;
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>3000] rusage[mem=3000]\" -M 3000000 -a \'docker(fernandamrod/r-tidyverse:0.1)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+
+    print $bsub_com;
+    system($bsub_com);
+}
+
+if($step_number==18)
+{
+    print $yellow, "Generating IGV shell scripts for manual review ....",$normal, "\n";
+
+    my $make_igv_cmd = "perl ".$script_dir."/make_igvsh.pl --rdir $run_dir";
+    print $make_igv_cmd,"\n";
+    system($make_igv_cmd) == 0 or die "Failed: $make_igv_cmd\n";
+}
 
 sub bsub_addrc{
 
@@ -1217,4 +1284,72 @@ sub bsub_run_charg{
     print $bsub_com;
     system ($bsub_com); 
 
+}
+
+sub bsub_post_charg{
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j15_postcharg.".$sample_name.".sh";
+
+    my $lsf_out = $lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err = $lsf_file_dir."/".$current_job_file.".err";
+
+    if(-e $lsf_out)
+    {
+        `rm $lsf_out`;
+        `rm $lsf_err`;
+        `rm $current_job_file`;
+    }
+
+    open(POSTCHARG, ">$job_files_dir/$current_job_file") or die $!;
+    print POSTCHARG "#!/bin/bash\n";
+    print POSTCHARG "sample=".$sample_name."\n";
+    print POSTCHARG "OUT_DIR=".$sample_full_path."/\n";
+    print POSTCHARG "python ".$script_dir."/post_CharGer.py -i \${OUT_DIR}\${sample}.sorted.charg.vep102.infoFixed.vcf.gz -c \${OUT_DIR}\${sample}.charged.tsv -d $cancer -s \${sample} -a 0.0005 -o \${sample} -O \${OUT_DIR}\n";
+    close POSTCHARG;
+
+    my $sh_file = $job_files_dir."/".$current_job_file;
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>3000] rusage[mem=3000]\" -M 3000000 -a \'docker(estorrs/pecgs-charger:0.0.1)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system($bsub_com);
+}
+
+sub bsub_charg_rc_igvsh{
+
+    my ($step_by_step) = @_;
+    if ($step_by_step) {
+        $hold_job_file = "";
+    }else{
+        $hold_job_file = $current_job_file;
+    }
+
+    $current_job_file = "j16_rc_igvsh.".$sample_name.".sh";
+
+    my $lsf_out = $lsf_file_dir."/".$current_job_file.".out";
+    my $lsf_err = $lsf_file_dir."/".$current_job_file.".err";
+
+    if(-e $lsf_out)
+    {
+        `rm $lsf_out`;
+        `rm $lsf_err`;
+        `rm $job_files_dir/$current_job_file`;
+    }
+
+    open(RCIGVSH, ">$job_files_dir/$current_job_file") or die $!;
+    print RCIGVSH "#!/bin/bash\n";
+    print RCIGVSH "sample=".$sample_name."\n";
+    print RCIGVSH "OUT_DIR=".$sample_full_path."/\n";
+    print RCIGVSH "perl ".$script_dir."/add_rc_to_chargevcf.pl -d \${OUT_DIR} -p \${sample}\n";
+    close RCIGVSH;
+
+    my $sh_file = $job_files_dir."/".$current_job_file;
+    $bsub_com = "LSF_DOCKER_ENTRYPOINT=/bin/bash LSF_DOCKER_PRESERVE_ENVIRONMENT=false bsub -g /$compute_username/$group_name -q $q_name -n 1 -R \"select[mem>3000] rusage[mem=3000]\" -M 3000000 -a \'docker(scao/dailybox)\' -o $lsf_out -e $lsf_err bash $sh_file\n";
+    print $bsub_com;
+    system($bsub_com);
 }
