@@ -38,6 +38,11 @@ Supported reference: hg38 (GDC GRCh38)
 
 The pipeline expects the following directory structure:
 
+### Input Folder Structure
+
+The pipeline expects the following directory structure:
+
+```
 run_id/
 ├── sample1/
 │   ├── sample1.N.bam
@@ -52,6 +57,7 @@ run_id/
 │   ├── sample2.T.bam.bai
 │
 └── ...
+```
 
 Requirements:
 - Each sample must have:
