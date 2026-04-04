@@ -13,14 +13,6 @@ Supported reference: hg38 (GDC GRCh38)
 
 ---
 
-## Author
-
-Song Cao  
-Washington University School of Medicine  
-Email: scao@wustl.edu
-
----
-
 ## Key Features
 
 - Multi-caller germline variant detection (GATK4, VarScan, Pindel)
@@ -42,9 +34,44 @@ Email: scao@wustl.edu
 
 ---
 
+## Input Folder Structure
+
+The pipeline expects the following directory structure:
+
+run_id/
+├── sample1/
+│   ├── sample1.N.bam
+│   ├── sample1.N.bam.bai
+│   ├── sample1.T.bam
+│   ├── sample1.T.bam.bai
+│
+├── sample2/
+│   ├── sample2.N.bam
+│   ├── sample2.N.bam.bai
+│   ├── sample2.T.bam
+│   ├── sample2.T.bam.bai
+│
+└── ...
+
+Requirements:
+- Each sample must have:
+  - Normal BAM: sample.N.bam
+  - Tumor BAM: sample.T.bam
+- Each BAM must have a corresponding index file (.bai)
+- Sample directory name must match the BAM prefix
+
+---
+
 ## Usage
 
-perl germlinewrapper.pl --rdir <run_dir> --log <log_dir> --groupname <group> --users <username> --ref <reference.fa> --step <step_number> --q <queue>
+perl germlinewrapper.pl \
+  --rdir <run_dir> \
+  --log <log_dir> \
+  --groupname <group> \
+  --users <username> \
+  --ref <reference.fa> \
+  --step <step_number> \
+  --q <queue>
 
 ---
 
