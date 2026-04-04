@@ -1,97 +1,77 @@
-# germlinewrapper v2.4, compute1
+# GermlineWrapper v2.4
 
-for HG38 reference
+HG38 germline variant calling pipeline for normal exome sequencing data  
+Designed for LSF-based HPC environments (compute1)
 
-Detect germline variants from normal sample
+---
 
-### Song Cao, email: scao@wustl.edu ###
+## Overview
 
-### ********you must enter the directory with germlinewrapper pipeline to submit the jobs******* ###
+GermlineWrapper is a fully automated and modular pipeline for detecting germline variants from normal exome sequencing data. It integrates multiple widely used variant calling tools and provides a complete workflow from raw BAM files to annotated variants, clinical classification, and manual review outputs.
 
-GermineWrapper pipeline is a fully automated and modular software package designed for detection of germline variants from normal exome data. It works on LSF job scheduler. Multiple standard variant callings are included in the pipeline such as varscan, gatk and pindel.
+Supported reference: hg38 (GDC GRCh38)
 
+---
 
-Improvements compared to version 2.3:
+## Author
 
-Implement Fernanda VEP annotation
+Song Cao  
+Washington University School of Medicine  
+Email: scao@wustl.edu
 
-If there is no readcount from tumor bam for a germline variant, assign 0 to the readcount to tumor 
- 
-Usage: perl $0  --srg --step --sre --rdir --ref --log --groupname --users --q
+---
 
-rdir = full path of the folder holding files for this sequence run (user must provide)
+## Key Features
 
-srg = bam having read group or not: 1, yes and 0, no (default 1)
+- Multi-caller germline variant detection (GATK4, VarScan, Pindel)
+- VEP annotation (Fernanda pipeline)
+- CharGer classification
+- Readcount integration
+- Automated report generation
+- IGV manual review support
+- LSF job scheduler compatible
+- Modular step-by-step execution
 
-groupname = job group name
+---
 
-users = user name for job group
+## Updates in v2.4
 
-log = full path of the folder for saving log file; usually upper folder of rdir 
+- Implemented Fernanda VEP annotation workflow  
+- Tumor readcount defaults to 0 if unavailable  
+- Added downstream steps 14–18 (CharGer, reporting, IGV review)
 
-sre = re-run: 1, yes and 0, no  (default 0)
+---
 
-step run this pipeline step by step. (user must provide)
+## Usage
 
-ref the human reference: GDC HG38: /storage1/fs1/songcao/Active/Database/hg38_database/GRCh38.d1.vd1/GRCh38.d1.vd1.fa
+perl germlinewrapper.pl --rdir <run_dir> --log <log_dir> --groupname <group> --users <username> --ref <reference.fa> --step <step_number> --q <queue>
 
-q which queue for submitting job; research-hpc, ding-lab, long (default)
+---
 
-run_folder = full path of the folder holding files for this sequence run
-step_number run this pipeline step by step. (running the whole pipeline if step number is 0)
+## Pipeline Steps
 
-[1]  Run gatk
+1. Run GATK  
+2. Run VarScan  
+3. Run Pindel  
+4. Parse Pindel  
+5. Filter VCF  
+6. Merge calls  
+7. VCF2MAF  
+8. Generate final MAF  
+9. Run bam-readcount  
+10. Add readcount  
+11. Generate MAF with readcount  
+12. Generate VEP input  
+13. Run VEP  
+14. Run CharGer  
+15. Postprocess CharGer  
+16. Add readcount and IGV session  
+17. Generate final report  
+18. Generate IGV scripts  
 
-[2]  Run varscan
+---
 
-[3]  Run pindel
+## Contact
 
-[4]  Parse pindel
-
-[5]  filter vcf
-
-[6]  Merge calls
-
-[7]  VCF2MAF
-
-[8]  Generate final maf
-
-[9]  Do bam readcount
-
-[10] add readcount to maf file
-
-[11] Generate maf file with readcount
-
-[12] Generate indvidual vep annotated vcf file for running charger
-
-[13] Run charger
-
-### see work_log_test for how to run jobs in compute1 
-
-### Details about the implementation ###
-
-
-SNV Variant Calls:
-
-* GATK4
-
-* VarScan 2.3.8
-
-* SNV calls are union calls from VarScan and GATK.
-
-
-Indel Variant Calls:
-
-* Pindel
-
-* VarScan 2.3.8
-
-* GATK4
-
-* Indel calls are from variants called by both GATK and VarScan or Pindel.
-
-* Merging SNV and Indel calls
-
-* Annotation resulting in annotated MAF
-
-* filter large indels longer than 100 bps
+Song Cao  
+scao@wustl.edu

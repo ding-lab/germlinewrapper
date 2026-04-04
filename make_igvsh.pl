@@ -106,6 +106,7 @@ for my $sample (sort keys %sample_pos) {
                 print $OUT "sort base\n";
                 print $OUT "collapse\n";
                 print $OUT "maxPanelHeight 2000\n";
+                print $OUT "colorBy READ_STRAND\n";
                 print $OUT "snapshotDirectory $snapdir/\n";
                 print $OUT "snapshot $png\n";
             }
