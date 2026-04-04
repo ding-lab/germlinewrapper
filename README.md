@@ -38,7 +38,7 @@ Email: scao@wustl.edu
 
 - Implemented Fernanda VEP annotation workflow  
 - Tumor readcount defaults to 0 if unavailable  
-- Added downstream steps 14–18 (CharGer, reporting, IGV review)
+- Added downstream steps 15–18 (parse CharGer, reporting, IGV review)
 
 ---
 
