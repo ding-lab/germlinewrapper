@@ -24,7 +24,7 @@ Email: scao@wustl.edu
 ## Key Features
 
 - Multi-caller germline variant detection (GATK4, VarScan, Pindel)
-- VEP annotation (Fernanda pipeline)
+- VEP annotation
 - CharGer classification
 - Readcount integration
 - Automated report generation
