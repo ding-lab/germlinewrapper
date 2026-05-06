@@ -355,13 +355,18 @@ if($step_number==11)
 
 if($step_number==17)
 {
-    print $yellow, "Running combine step and submitting final report job ....",$normal, "\n";
+    
+  print $yellow, "Running combine step and submitting final report job ....",$normal, "\n";
 
     my $dataset_name = (split(/\//, $run_dir))[-1];
-    my $out_file = $run_dir."/".$dataset_name.".charged2vcf.filtered.af0.0005.withrc.tsv";
-
+    my $out_file_lowaf = $run_dir."/".$dataset_name.".charged2vcf.filtered.af0.0005.withrc.tsv";
+    my $out_file = $run_dir."/".$dataset_name.".charged2vcf.filtered.withrc.tsv";
     #  Run Python combine step locally (NOT via bsub)
     my $combine_cmd = "python ".$script_dir."/combine_germline_report.py -i $run_dir -o $out_file";
+    print $combine_cmd,"\n";
+    system($combine_cmd) == 0 or die "Failed: $combine_cmd\n";
+
+    my $combine_cmd = "python ".$script_dir."/combine_germline_report.af0.0005.py -i $run_dir -o $out_file_lowaf";
     print $combine_cmd,"\n";
     system($combine_cmd) == 0 or die "Failed: $combine_cmd\n";
 
@@ -385,7 +390,9 @@ if($step_number==17)
     print STEP17 "#!/bin/bash\n";
     print STEP17 "RUN_DIR=".$run_dir."\n";
     print STEP17 "OUT_FILE=".$out_file."\n";
+     print STEP17 "OUT_FILE_LOWAF=".$out_file_lowaf."\n";
     print STEP17 "Rscript ".$script_dir."/prep4manualreview_PECGS.R -w \${RUN_DIR} -d $dataset_name -r TN -c \${OUT_FILE}\n";
+    print STEP17 "Rscript ".$script_dir."/prep4manualreview_PECGS.af0.0005.R -w \${RUN_DIR} -d $dataset_name -r TN -c \${OUT_FILE_LOWAF}\n";
     close STEP17;
 
     my $sh_file = $job_files_dir."/".$current_job_file;

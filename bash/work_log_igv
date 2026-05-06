@@ -1,0 +1,5 @@
+#Open browser (mac) and go to the address using the node number:
+#Example: http://compute1-exec-263.ris.wustl.edu:8080/vnc.html
+#Login using the password you exported from the above command. You don't need to provide a username.
+#To launch IGV type the following in the terminal that appears:
+#/IGV/igv.sh

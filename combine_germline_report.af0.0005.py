@@ -10,7 +10,7 @@ def main():
     parser.add_argument("-o", "--output", required=True, help="Output TSV file")
     args = parser.parse_args()
 
-    files = sorted(glob.glob(os.path.join(args.input_dir, "**", "*iltered.withrc.filtered.tsv"), recursive=True))
+    files = sorted(glob.glob(os.path.join(args.input_dir, "**", "*iltered.af0.0005.withrc.filtered.tsv"), recursive=True))
 
     if not files:
         print("No files found!")
